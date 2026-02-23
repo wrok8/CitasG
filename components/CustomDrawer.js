@@ -1,190 +1,76 @@
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert
-} from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 
 export default function CustomDrawer({
   setScreen,
-  currentScreen,
-  closeDrawer
+  closeDrawer,
+  onLogout,
+  setPacienteActual,   // 👈 AGREGA ESTO
 }) {
+  const Item = ({ label }) => (
+  <TouchableOpacity
+    style={styles.item}
+    onPress={() => {
+      if (label === "Agendar Cita") {
+        setPacienteActual(null); // 🔥 Limpia paciente
+      }
 
-  const DrawerItem = ({ title, icon }) => {
-
-    const active = currentScreen === title;
-
-    return (
-
-      <TouchableOpacity
-        style={[
-          styles.item,
-          active && styles.activeItem
-        ]}
-        onPress={() => {
-          setScreen(title);
-          closeDrawer();
-        }}
-      >
-
-        <Text style={styles.icon}>
-          {icon}
-        </Text>
-
-        <Text style={styles.text}>
-          {title}
-        </Text>
-
-      </TouchableOpacity>
-
-    );
-  };
-
-  const LogoutItem = () => (
-
-    <TouchableOpacity
-      style={styles.logoutItem}
-      onPress={() => {
-
-        Alert.alert(
-          "Cerrar sesión",
-          "¿Seguro que desea cerrar sesión?",
-          [
-            {
-              text: "Cancelar",
-              style: "cancel"
-            },
-            {
-              text: "Cerrar sesión",
-              style: "destructive",
-              onPress: () => {
-                Alert.alert("Sesión cerrada correctamente");
-                closeDrawer();
-              }
-            }
-          ]
-        );
-
-      }}
-    >
-
-      <Text style={styles.icon}>
-        🚪
-      </Text>
-
-      <Text style={styles.text}>
-        Cerrar sesión
-      </Text>
-
-    </TouchableOpacity>
-
-  );
+      setScreen(label);
+      closeDrawer();
+    }}
+  >
+    <Text style={styles.text}>{label}</Text>
+  </TouchableOpacity>
+);
 
   return (
-
     <View style={styles.container}>
-
-      {/* HEADER */}
       <View style={styles.header}>
-
         <Image
-          source={{ uri: "https://i.pravatar.cc/150" }}
+          source={{ uri: "https://i.pravatar.cc/100" }}
           style={styles.avatar}
         />
-
-        <Text style={styles.username}>
-          Usuario
-        </Text>
-
+        <Text style={styles.username}>Clínica Geriátrica</Text>
       </View>
 
+      <Item label="Inicio" />
+      <Item label="Agendar Cita" />
+      <Item label="Lista de Pacientes" />
+      <Item label="Evaluaciones" />
+      <Item label="Perfil" />
+      <Item label="Configuración" />
 
-      {/* OPCIONES */}
-      <DrawerItem title="Inicio" icon="🏠" />
-      <DrawerItem title="Detalles" icon="📋" />
-      <DrawerItem title="Perfil" icon="👤" />
-      <DrawerItem title="Configuración" icon="⚙️" />
-
-
-      {/* SEPARADOR */}
-      <View style={styles.separator} />
-
-
-      {/* SALIR */}
-      <LogoutItem />
-
-
+      <TouchableOpacity style={styles.logout} onPress={onLogout}>
+        <Text style={styles.logoutText}>Salir</Text>
+      </TouchableOpacity>
     </View>
-
   );
-
 }
 
 const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-    backgroundColor: "#0D47A1",
-  },
-
+  container: { flex: 1, backgroundColor: "#E3F2FD" },
   header: {
-    alignItems: "center",
-    padding: 30,
+    padding: 20,
     backgroundColor: "#1565C0",
+    alignItems: "center",
   },
-
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    marginBottom: 10,
-    borderWidth: 3,
-    borderColor: "white"
-  },
-
+  avatar: { width: 80, height: 80, borderRadius: 40 },
   username: {
     color: "white",
+    marginTop: 10,
     fontSize: 18,
     fontWeight: "bold",
   },
-
   item: {
-    flexDirection: "row",
-    alignItems: "center",
     padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#BBDEFB",
   },
-
-  activeItem: {
-    backgroundColor: "#1976D2",
-  },
-
-  icon: {
-    fontSize: 20,
-    marginRight: 15,
-    color: "white",
-  },
-
-  text: {
-    color: "white",
-    fontSize: 18,
-  },
-
-  separator: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    marginVertical: 10,
-    marginHorizontal: 15
-  },
-
-  logoutItem: {
-    flexDirection: "row",
-    alignItems: "center",
+  text: { fontSize: 16, fontWeight: "bold", color: "#0D47A1" },
+  logout: {
+    marginTop: 20,
     padding: 15,
     backgroundColor: "#0D47A1",
   },
-
+  logoutText: { color: "white", textAlign: "center", fontWeight: "bold" },
 });
