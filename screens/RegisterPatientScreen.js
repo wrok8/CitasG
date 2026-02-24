@@ -17,9 +17,9 @@ export default function RegisterPatientScreen({
   setPacienteActual,
   pacienteActual,
 }) {
-    const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-    const formInicial = {
+  const formInicial = {
     nombre: "",
     contacto: "",
     email: "",
@@ -27,24 +27,23 @@ export default function RegisterPatientScreen({
     fecha: new Date(),
     sintomas: "",
     evaluaciones: {
-        Cognitivo: false,
-        Afectivo: false,
-        Funcionamiento: false,
-        Nutricional: false,
-        Entorno: false,
+      Cognitivo: false,
+      Afectivo: false,
+      Funcionamiento: false,
+      Nutricional: false,
+      Entorno: false,
     },
-    };
+  };
 
-    const [form, setForm] = useState(formInicial);
+  const [form, setForm] = useState(formInicial);
 
-    // Cargar datos si está editando, si no, limpiar
-    useEffect(() => {
+  useEffect(() => {
     if (pacienteActual) {
-        setForm(pacienteActual);
+      setForm(pacienteActual);
     } else {
-        setForm(formInicial);
+      setForm(formInicial);
     }
-    }, [pacienteActual]);
+  }, [pacienteActual]);
 
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || form.fecha;
@@ -64,6 +63,12 @@ export default function RegisterPatientScreen({
 
     setPacienteActual(form);
     setScreen("Resumen");
+  };
+
+  // ✅ CORREGIDO: ahora navega a EntornoMenu
+  const handleIrEntorno = () => {
+    setPacienteActual(form);
+    setScreen("EntornoMenu");
   };
 
   return (
@@ -156,6 +161,16 @@ export default function RegisterPatientScreen({
           </View>
         ))}
 
+        {/* ✅ BOTÓN CONDICIONAL */}
+        {form.evaluaciones.Entorno && (
+          <TouchableOpacity
+            style={[styles.button, styles.entornoButton]}
+            onPress={handleIrEntorno}
+          >
+            <Text style={styles.buttonText}>LLEVAR A ENTORNO</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>VER RESUMEN</Text>
         </TouchableOpacity>
@@ -202,6 +217,9 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
     marginTop: 25,
+  },
+  entornoButton: {
+    backgroundColor: "#2E7D32",
   },
   buttonText: {
     color: "white",

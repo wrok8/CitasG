@@ -15,9 +15,11 @@ import DetailScreen from "./screens/DetailScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import RegisterPatientScreen from "./screens/RegisterPatientScreen";
-import ResumenScreen from "./screens/ResumenScreen.js";
+import ResumenScreen from "./screens/ResumenScreen";
 import ListaPacientesScreen from "./screens/ListaPacientesScreen";
 import EvaluacionesScreen from "./screens/EvaluacionesScreen";
+import EntornoMenuScreen from "./screens/EntornoMenuScreen";
+import OARSScreen from "./screens/OARSScreen";
 
 import CustomDrawer from "./components/CustomDrawer";
 
@@ -61,17 +63,23 @@ export default function App() {
         );
 
       case "Lista de Pacientes":
-      return (
-        <ListaPacientesScreen
-          pacientes={pacientes}
-          setScreen={setScreen}
-          setPacienteActual={setPacienteActual}
-          setPacientes={setPacientes}
-        />
-      );
+        return (
+          <ListaPacientesScreen
+            pacientes={pacientes}
+            setScreen={setScreen}
+            setPacienteActual={setPacienteActual}
+            setPacientes={setPacientes}
+          />
+        );
 
       case "Evaluaciones":
         return <EvaluacionesScreen />;
+
+      case "EntornoMenu":
+        return <EntornoMenuScreen setScreen={setScreen} />;
+
+      case "OARS":
+        return <OARSScreen setScreen={setScreen} />;
 
       default:
         return <HomeScreen setScreen={setScreen} />;
@@ -87,17 +95,13 @@ export default function App() {
           <CustomDrawer
             setScreen={setScreen}
             currentScreen={screen}
-            setPacienteActual={setPacienteActual}   // 👈 AGREGA ESTA LÍNEA
+            setPacienteActual={setPacienteActual}
             closeDrawer={() => drawer.current.closeDrawer()}
             onLogout={() =>
-              Alert.alert(
-                "Cerrar Sesión",
-                "¿Seguro que desea cerrar sesión?",
-                [
-                  { text: "Cancelar" },
-                  { text: "Sí", onPress: () => setScreen("Inicio") },
-                ]
-              )
+              Alert.alert("Cerrar Sesión", "¿Seguro que desea cerrar sesión?", [
+                { text: "Cancelar" },
+                { text: "Sí", onPress: () => setScreen("Inicio") },
+              ])
             }
           />
         )}
