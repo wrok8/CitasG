@@ -21,6 +21,11 @@ import EvaluacionesScreen from "./screens/EvaluacionesScreen";
 import EntornoMenuScreen from "./screens/EntornoMenuScreen";
 import OARSScreen from "./screens/OARSScreen";
 
+import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
+import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
+import FuncionamientoMenuScreen from "./screens/FuncionamientoMenuScreen";
+import NutricionalMenuScreen from "./screens/NutricionalMenuScreen";
+
 import CustomDrawer from "./components/CustomDrawer";
 
 export default function App() {
@@ -74,6 +79,19 @@ export default function App() {
 
       case "Evaluaciones":
         return <EvaluacionesScreen />;
+
+     
+      case "CognitivoMenu":
+        return <CognitivoMenuScreen setScreen={setScreen} />;
+
+      case "AfectivoMenu":
+        return <AfectivoMenuScreen setScreen={setScreen} />;
+
+      case "FuncionamientoMenu":
+        return <FuncionamientoMenuScreen setScreen={setScreen} />;
+
+      case "NutricionalMenu":
+        return <NutricionalMenuScreen setScreen={setScreen} />;
 
       case "EntornoMenu":
         return <EntornoMenuScreen setScreen={setScreen} />;

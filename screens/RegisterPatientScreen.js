@@ -65,10 +65,9 @@ export default function RegisterPatientScreen({
     setScreen("Resumen");
   };
 
-  // ✅ CORREGIDO: ahora navega a EntornoMenu
-  const handleIrEntorno = () => {
+  const handleNavigate = (screenName) => {
     setPacienteActual(form);
-    setScreen("EntornoMenu");
+    setScreen(screenName);
   };
 
   return (
@@ -80,7 +79,6 @@ export default function RegisterPatientScreen({
         <TextInput
           style={styles.input}
           placeholder="Escriba nombre del paciente"
-          placeholderTextColor="#90A4AE"
           value={form.nombre}
           onChangeText={(t) => setForm({ ...form, nombre: t })}
         />
@@ -89,7 +87,6 @@ export default function RegisterPatientScreen({
         <TextInput
           style={styles.input}
           placeholder="Escriba nombre del contacto"
-          placeholderTextColor="#90A4AE"
           value={form.contacto}
           onChangeText={(t) => setForm({ ...form, contacto: t })}
         />
@@ -98,10 +95,9 @@ export default function RegisterPatientScreen({
         <TextInput
           style={styles.input}
           placeholder="usuario@gmail.com"
-          placeholderTextColor="#90A4AE"
-          value={form.email}
           keyboardType="email-address"
           autoCapitalize="none"
+          value={form.email}
           onChangeText={(t) => setForm({ ...form, email: t })}
         />
 
@@ -109,9 +105,8 @@ export default function RegisterPatientScreen({
         <TextInput
           style={styles.input}
           placeholder="Ej. 5551234567"
-          placeholderTextColor="#90A4AE"
-          value={form.telefono}
           keyboardType="phone-pad"
+          value={form.telefono}
           onChangeText={(t) => setForm({ ...form, telefono: t })}
         />
 
@@ -137,7 +132,6 @@ export default function RegisterPatientScreen({
         <TextInput
           style={[styles.input, styles.textArea]}
           placeholder="Describa los síntomas del paciente"
-          placeholderTextColor="#90A4AE"
           multiline
           value={form.sintomas}
           onChangeText={(t) => setForm({ ...form, sintomas: t })}
@@ -145,29 +139,126 @@ export default function RegisterPatientScreen({
 
         <Text style={styles.subtitle}>Evaluaciones Geriátricas</Text>
 
-        {Object.keys(form.evaluaciones).map((key) => (
-          <View key={key} style={styles.switchRow}>
-            <Text>{key}</Text>
-            <Switch
-              value={form.evaluaciones[key]}
-              onValueChange={(v) =>
-                setForm({
-                  ...form,
-                  evaluaciones: { ...form.evaluaciones, [key]: v },
-                })
-              }
-              trackColor={{ true: "#1565C0" }}
-            />
-          </View>
-        ))}
+        {/* COGNITIVO */}
+        <View style={styles.switchRow}>
+          <Text>Cognitivo</Text>
+          <Switch
+            value={form.evaluaciones.Cognitivo}
+            onValueChange={(v) =>
+              setForm({
+                ...form,
+                evaluaciones: { ...form.evaluaciones, Cognitivo: v },
+              })
+            }
+            trackColor={{ true: "#1565C0" }}
+          />
+        </View>
 
-        {/* ✅ BOTÓN CONDICIONAL */}
+        {form.evaluaciones.Cognitivo && (
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleNavigate("CognitivoMenu")}
+          >
+            <Text style={styles.buttonText}>IR A COGNITIVO MENU</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* AFECTIVO */}
+        <View style={styles.switchRow}>
+          <Text>Afectivo</Text>
+          <Switch
+            value={form.evaluaciones.Afectivo}
+            onValueChange={(v) =>
+              setForm({
+                ...form,
+                evaluaciones: { ...form.evaluaciones, Afectivo: v },
+              })
+            }
+            trackColor={{ true: "#1565C0" }}
+          />
+        </View>
+
+        {form.evaluaciones.Afectivo && (
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleNavigate("AfectivoMenu")}
+          >
+            <Text style={styles.buttonText}>IR A AFECTIVO MENU</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* FUNCIONAMIENTO */}
+        <View style={styles.switchRow}>
+          <Text>Funcionamiento</Text>
+          <Switch
+            value={form.evaluaciones.Funcionamiento}
+            onValueChange={(v) =>
+              setForm({
+                ...form,
+                evaluaciones: {
+                  ...form.evaluaciones,
+                  Funcionamiento: v,
+                },
+              })
+            }
+            trackColor={{ true: "#1565C0" }}
+          />
+        </View>
+
+        {form.evaluaciones.Funcionamiento && (
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleNavigate("FuncionamientoMenu")}
+          >
+            <Text style={styles.buttonText}>IR A FUNCIONAMIENTO MENU</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* NUTRICIONAL */}
+        <View style={styles.switchRow}>
+          <Text>Nutricional</Text>
+          <Switch
+            value={form.evaluaciones.Nutricional}
+            onValueChange={(v) =>
+              setForm({
+                ...form,
+                evaluaciones: { ...form.evaluaciones, Nutricional: v },
+              })
+            }
+            trackColor={{ true: "#1565C0" }}
+          />
+        </View>
+
+        {form.evaluaciones.Nutricional && (
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleNavigate("NutricionalMenu")}
+          >
+            <Text style={styles.buttonText}>IR A NUTRICIONAL MENU</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ENTORNO */}
+        <View style={styles.switchRow}>
+          <Text>Entorno</Text>
+          <Switch
+            value={form.evaluaciones.Entorno}
+            onValueChange={(v) =>
+              setForm({
+                ...form,
+                evaluaciones: { ...form.evaluaciones, Entorno: v },
+              })
+            }
+            trackColor={{ true: "#1565C0" }}
+          />
+        </View>
+
         {form.evaluaciones.Entorno && (
           <TouchableOpacity
-            style={[styles.button, styles.entornoButton]}
-            onPress={handleIrEntorno}
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => handleNavigate("EntornoMenu")}
           >
-            <Text style={styles.buttonText}>LLEVAR A ENTORNO</Text>
+            <Text style={styles.buttonText}>IR A ENTORNO MENU</Text>
           </TouchableOpacity>
         )}
 
@@ -216,9 +307,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#1565C0",
     padding: 18,
     borderRadius: 12,
-    marginTop: 25,
+    marginTop: 15,
   },
-  entornoButton: {
+  secondaryButton: {
     backgroundColor: "#2E7D32",
   },
   buttonText: {

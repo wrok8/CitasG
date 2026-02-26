@@ -5,14 +5,14 @@ export default function CustomDrawer({
   setScreen,
   closeDrawer,
   onLogout,
-  setPacienteActual,   // 👈 AGREGA ESTO
+  setPacienteActual,   
 }) {
   const Item = ({ label }) => (
   <TouchableOpacity
     style={styles.item}
     onPress={() => {
       if (label === "Agendar Cita") {
-        setPacienteActual(null); // 🔥 Limpia paciente
+        setPacienteActual(null); 
       }
 
       setScreen(label);
