@@ -18,7 +18,7 @@ export default function RegisterPatientScreen({
   pacienteActual,
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
-
+const [gds15, setGds15] = useState(null);
 const formInicial = {
     nombre: "",
     contacto: "",
