@@ -19,7 +19,7 @@ export default function RegisterPatientScreen({
 }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  const formInicial = {
+const formInicial = {
     nombre: "",
     contacto: "",
     email: "",
@@ -33,6 +33,7 @@ export default function RegisterPatientScreen({
       Nutricional: false,
       Entorno: false,
     },
+    pruebas: [],   
   };
 
   const [form, setForm] = useState(formInicial);
@@ -68,6 +69,34 @@ export default function RegisterPatientScreen({
   const handleNavigate = (screenName) => {
     setPacienteActual(form);
     setScreen(screenName);
+  };
+
+  const guardarPaciente = () => {
+  if (!pacienteActual?.nombre) {
+    Alert.alert("Error", "Debe ingresar el nombre del paciente");
+    return;
+  }
+
+    setPacientes((prevPacientes) => {
+      // Verificar si ya existe (modo edición)
+      const existe = prevPacientes.find(
+        (p) => p === pacienteActual
+      );
+
+      if (existe) {
+        // Si existe, actualizarlo
+        return prevPacientes.map((p) =>
+          p === pacienteActual ? pacienteActual : p
+        );
+      } else {
+        // Si no existe, agregarlo
+        return [...prevPacientes, pacienteActual];
+      }
+    });
+
+    Alert.alert("Éxito", "Paciente guardado correctamente");
+
+    setScreen("Lista de Pacientes");
   };
 
   return (

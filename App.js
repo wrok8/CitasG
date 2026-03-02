@@ -8,6 +8,7 @@ import {
   Alert,
 } from "react-native";
 
+import { EvaluationProvider } from './context/EvaluationContext';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import HomeScreen from "./screens/HomeScreen";
@@ -20,6 +21,7 @@ import ListaPacientesScreen from "./screens/ListaPacientesScreen";
 import EvaluacionesScreen from "./screens/EvaluacionesScreen";
 import EntornoMenuScreen from "./screens/EntornoMenuScreen";
 import OARSScreen from "./screens/OARSScreen";
+import FluenciaVerbalAnimales from "./screens/FluenciaVerbalScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -28,7 +30,7 @@ import NutricionalMenuScreen from "./screens/NutricionalMenuScreen";
 
 import CustomDrawer from "./components/CustomDrawer";
 
-export default function App() {
+function MainApp() {
   const drawer = useRef(null);
   const [screen, setScreen] = useState("Inicio");
   const [pacientes, setPacientes] = useState([]);
@@ -58,14 +60,14 @@ export default function App() {
         );
 
       case "Resumen":
-        return (
-          <ResumenScreen
-            paciente={pacienteActual}
-            setScreen={setScreen}
-            setPacientes={setPacientes}
-            pacientes={pacientes}
-          />
-        );
+      return (
+        <ResumenScreen
+          paciente={pacienteActual}
+          setScreen={setScreen}
+          pacientes={pacientes}
+          setPacientes={setPacientes}
+        />
+      );
 
       case "Lista de Pacientes":
         return (
@@ -80,7 +82,6 @@ export default function App() {
       case "Evaluaciones":
         return <EvaluacionesScreen />;
 
-     
       case "CognitivoMenu":
         return <CognitivoMenuScreen setScreen={setScreen} />;
 
@@ -97,7 +98,16 @@ export default function App() {
         return <EntornoMenuScreen setScreen={setScreen} />;
 
       case "OARS":
-        return <OARSScreen setScreen={setScreen} />;
+        return <OARSScreen setScreen={setScreen} pacienteActual={pacienteActual} />;
+
+     case "FluenciaVerbal":
+      return (
+        <FluenciaVerbalAnimales
+          setScreen={setScreen}
+          pacienteActual={pacienteActual}
+          setPacienteActual={setPacienteActual}
+        />
+      );
 
       default:
         return <HomeScreen setScreen={setScreen} />;
@@ -136,6 +146,14 @@ export default function App() {
         </SafeAreaView>
       </DrawerLayoutAndroid>
     </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <EvaluationProvider>
+      <MainApp />
+    </EvaluationProvider>
   );
 }
 

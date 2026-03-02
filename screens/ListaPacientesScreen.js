@@ -18,6 +18,10 @@ export default function ListaPacientesScreen({
   const [modalVisible, setModalVisible] = useState(false);
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
 
+  const getPacienteKey = (paciente) => {
+    return `${paciente.nombre}-${paciente.telefono}-${paciente.fecha}`;
+  };
+
   const abrirModal = (paciente) => {
     setPacienteSeleccionado(paciente);
     setModalVisible(true);
@@ -25,32 +29,51 @@ export default function ListaPacientesScreen({
 
   const eliminarPaciente = () => {
     const nuevaLista = pacientes.filter(
-      (p) => p !== pacienteSeleccionado
+      (p) => getPacienteKey(p) !== getPacienteKey(pacienteSeleccionado)
     );
+
     setPacientes(nuevaLista);
     setModalVisible(false);
   };
 
   return (
     <View style={{ flex: 1 }}>
-      <FlatList
-        data={pacientes}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => abrirModal(item)}
-          >
-            <Text style={styles.title}>{item.nombre}</Text>
-            <Text>
-            Fecha: {new Date(item.fecha).toLocaleDateString()}
-            </Text>
-            <Text numberOfLines={1}>
-              Síntomas: {item.sintomas}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+      {pacientes.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            No hay pacientes guardados
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={pacientes}
+          keyExtractor={(item) => getPacienteKey(item)}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => abrirModal(item)}
+            >
+              <Text style={styles.title}>{item.nombre}</Text>
+
+              <Text>
+                Fecha:{" "}
+                {item.fecha
+                  ? new Date(item.fecha).toLocaleDateString()
+                  : "Sin fecha"}
+              </Text>
+
+              <Text numberOfLines={1}>
+                Síntomas: {item.sintomas || "No especificados"}
+              </Text>
+
+              <Text style={styles.pruebasText}>
+                Pruebas realizadas:{" "}
+                {item.pruebas?.length || 0}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
 
       {/* MODAL */}
       <Modal
@@ -129,6 +152,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#0D47A1",
     marginBottom: 5,
+  },
+
+  pruebasText: {
+    marginTop: 5,
+    fontWeight: "bold",
+    color: "#2E7D32",
+  },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emptyText: {
+    fontSize: 16,
+    color: "#777",
   },
 
   overlay: {
