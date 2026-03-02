@@ -26,6 +26,7 @@ import MiniCogScreen from "./screens/MiniCogScreen";
 import MiniMentalScreen from "./screens/MiniMentalScreen";
 import MoCAScreen from "./screens/MoCAScreen";
 import GDS15Screen from "./screens/GDS15Screen";
+import KatzScreen from "./screens/KatzScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -151,6 +152,14 @@ function MainApp() {
   case "CESD-7":
   return (
     <CESD7Screen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+  case "Katz":
+  return (
+    <KatzScreen
       setScreen={setScreen}
       pacienteActual={pacienteActual}
       setPacienteActual={setPacienteActual}

@@ -6,7 +6,10 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
     <View style={styles.container}>
       <Text style={styles.title}>Evaluaciones de Funcionamiento</Text>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Katz")}
+      >
         <Text style={styles.buttonText}>1. Índice de Katz</Text>
       </TouchableOpacity>
 
