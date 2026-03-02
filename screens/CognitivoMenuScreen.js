@@ -26,24 +26,20 @@ export default function CognitivoMenuScreen({ setScreen }) {
         </Text>
       </TouchableOpacity>
 
-      {/* 3️⃣ Mini-Mental */}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => alert("Mini-Mental próximamente")}
+        onPress={() => setScreen("Mini-Mental")}
       >
         <Text style={styles.buttonText}>
           3. Mini-Mental
         </Text>
       </TouchableOpacity>
 
-      {/* 4️⃣ MoCA */}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => alert("MoCA próximamente")}
+        onPress={() => setScreen("MoCA")}
       >
-        <Text style={styles.buttonText}>
-          4. MoCA
-        </Text>
+        <Text style={styles.buttonText}>4. MoCA</Text>
       </TouchableOpacity>
     </View>
   );

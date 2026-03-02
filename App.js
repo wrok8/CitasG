@@ -23,6 +23,8 @@ import EntornoMenuScreen from "./screens/EntornoMenuScreen";
 import OARSScreen from "./screens/OARSScreen";
 import FluenciaVerbalAnimales from "./screens/FluenciaVerbalScreen";
 import MiniCogScreen from "./screens/MiniCogScreen";
+import MiniMentalScreen from "./screens/MiniMentalScreen";
+import MoCAScreen from "./screens/MoCAScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -101,6 +103,15 @@ function MainApp() {
       case "OARS":
         return <OARSScreen setScreen={setScreen} pacienteActual={pacienteActual} />;
 
+        case "MoCA":
+  return (
+    <MoCAScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+
      case "FluenciaVerbal":
       return (
         <FluenciaVerbalAnimales
@@ -117,6 +128,16 @@ function MainApp() {
           setPacienteActual={setPacienteActual}
         />
       );
+      case "Mini-Mental":
+      return (
+        <MiniMentalScreen
+          setScreen={setScreen}
+          pacienteActual={pacienteActual}
+          setPacienteActual={setPacienteActual}
+        />
+      );
+
+      
 
       default:
         return <HomeScreen setScreen={setScreen} />;
