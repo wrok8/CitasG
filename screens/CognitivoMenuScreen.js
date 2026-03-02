@@ -6,37 +6,61 @@ export default function CognitivoMenuScreen({ setScreen }) {
     <View style={styles.container}>
       <Text style={styles.title}>Evaluaciones Cognitivas</Text>
 
+      {/* 1️⃣ Fluencia Verbal */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setScreen("FluenciaVerbal")}
-        >
+      >
         <Text style={styles.buttonText}>
-            1. Fluencia verbal semántica
+          1. Fluencia verbal semántica
         </Text>
-        </TouchableOpacity>
-
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>2. Mini-Cog</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>3. Mini-Mental</Text>
+      {/* 2️⃣ Mini-Cog */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Mini-Cog")}
+      >
+        <Text style={styles.buttonText}>
+          2. Mini-Cog
+        </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>4. MoCA</Text>
+      {/* 3️⃣ Mini-Mental */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => alert("Mini-Mental próximamente")}
+      >
+        <Text style={styles.buttonText}>
+          3. Mini-Mental
+        </Text>
+      </TouchableOpacity>
+
+      {/* 4️⃣ MoCA */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => alert("MoCA próximamente")}
+      >
+        <Text style={styles.buttonText}>
+          4. MoCA
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { 
+    flex: 1, 
+    padding: 20,
+    backgroundColor: "#f4f6f8"
+  },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 25,
     color: "#0D47A1",
+    textAlign: "center"
   },
   button: {
     backgroundColor: "#1565C0",

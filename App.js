@@ -22,6 +22,7 @@ import EvaluacionesScreen from "./screens/EvaluacionesScreen";
 import EntornoMenuScreen from "./screens/EntornoMenuScreen";
 import OARSScreen from "./screens/OARSScreen";
 import FluenciaVerbalAnimales from "./screens/FluenciaVerbalScreen";
+import MiniCogScreen from "./screens/MiniCogScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -103,6 +104,14 @@ function MainApp() {
      case "FluenciaVerbal":
       return (
         <FluenciaVerbalAnimales
+          setScreen={setScreen}
+          pacienteActual={pacienteActual}
+          setPacienteActual={setPacienteActual}
+        />
+      );
+      case "Mini-Cog":
+      return (
+        <MiniCogScreen
           setScreen={setScreen}
           pacienteActual={pacienteActual}
           setPacienteActual={setPacienteActual}
