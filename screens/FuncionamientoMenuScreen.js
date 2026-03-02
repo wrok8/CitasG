@@ -13,7 +13,10 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>1. Índice de Katz</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Lawton")}
+      >
         <Text style={styles.buttonText}>2. Índice de Lawton</Text>
       </TouchableOpacity>
 
@@ -25,11 +28,17 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>4. FRAIL</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Braden")}
+      >
         <Text style={styles.buttonText}>5. Escala de Braden</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Norton")}
+      >
         <Text style={styles.buttonText}>6. Escala Norton</Text>
       </TouchableOpacity>
 
@@ -40,6 +49,8 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
       <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>8. Visión</Text>
       </TouchableOpacity>
+
+      
     </View>
   );
 }
