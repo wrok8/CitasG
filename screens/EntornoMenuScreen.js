@@ -22,11 +22,14 @@ export default function EntornoMenuScreen({ setScreen }) {
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, styles.disabled]}>
-        <Text style={styles.buttonText}>
-          3. Movilidad en el entorno
-        </Text>
-      </TouchableOpacity>
+      <TouchableOpacity
+      style={styles.button}
+      onPress={() => setScreen("MovilidadEntorno")}
+    >
+      <Text style={styles.buttonText}>
+        3. Movilidad en el entorno
+      </Text>
+    </TouchableOpacity>
     </View>
   );
 }

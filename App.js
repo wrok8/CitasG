@@ -37,6 +37,7 @@ import MNAScreen from "./screens/MNAScreen";
 import MUSTScreen from "./screens/MUSTScreen";
 import SarcFScreen from "./screens/SarcFScreen";
 import EscalaMaltratoScreen from "./screens/EscalaMaltratoScreen";
+import MovilidadEntornoScreen from "./screens/MovilidadEntornoScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -156,7 +157,14 @@ function MainApp() {
           setPacienteActual={setPacienteActual}
         />
       );
-
+case "MovilidadEntorno":
+  return (
+    <MovilidadEntornoScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
       case "GDS-15":
   return (
     <GDS15Screen
