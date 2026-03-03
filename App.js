@@ -109,8 +109,15 @@ function MainApp() {
       case "EntornoMenu":
         return <EntornoMenuScreen setScreen={setScreen} />;
 
-      case "OARS":
-        return <OARSScreen setScreen={setScreen} pacienteActual={pacienteActual} />;
+
+        case "OARS":
+  return (
+    <OARSScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
 
         case "MoCA":
   return (

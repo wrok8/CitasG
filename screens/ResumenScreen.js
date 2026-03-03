@@ -35,7 +35,7 @@ const ResumenScreen = ({
     0
   );
 
-  // 🔥 AQUÍ SE GUARDA REALMENTE EN LA LISTA
+  // 🔥 GUARDAR PACIENTE EN LISTA
   const guardarPaciente = () => {
     setPacientes((prev) => {
       const existe = prev.find(
@@ -46,7 +46,6 @@ const ResumenScreen = ({
       );
 
       if (existe) {
-        // Actualiza si ya existe
         return prev.map((p) =>
           p.nombre === paciente.nombre &&
           p.telefono === paciente.telefono &&
@@ -55,7 +54,6 @@ const ResumenScreen = ({
             : p
         );
       } else {
-        // Agrega nuevo
         return [...prev, paciente];
       }
     });
@@ -68,11 +66,15 @@ const ResumenScreen = ({
     <ScrollView style={styles.container}>
       <Text style={styles.titulo}>Resumen Clínico</Text>
 
+      {/* DATOS PACIENTE */}
       <View style={styles.cardPaciente}>
         <Text style={styles.nombre}>{paciente.nombre}</Text>
         <Text>Teléfono: {paciente.telefono}</Text>
         <Text>
-          Fecha: {new Date(paciente.fecha).toLocaleDateString()}
+          Fecha:{" "}
+          {paciente.fecha
+            ? new Date(paciente.fecha).toLocaleDateString()
+            : ""}
         </Text>
       </View>
 
@@ -88,8 +90,37 @@ const ResumenScreen = ({
             <View key={index} style={styles.cardEvaluacion}>
               <Text style={styles.tipo}>{item.tipo}</Text>
               <Text>Fecha: {item.fecha}</Text>
-              <Text>Puntaje: {item.puntaje}</Text>
 
+              {/* 🔹 MOSTRAR PUNTAJE SOLO SI EXISTE */}
+              {item.puntaje !== undefined && (
+                <Text>Puntaje: {item.puntaje}</Text>
+              )}
+
+              {/* 🔹 SI ES OARS, MOSTRAR FORMULARIO COMPLETO */}
+              {item.tipo === "OARS" &&
+                item.detalle?.respuestas && (
+                  <View style={styles.detalleBox}>
+                    <Text style={styles.detalleTitulo}>
+                      Respuestas del Formulario:
+                    </Text>
+
+                    {Object.entries(
+                      item.detalle.respuestas
+                    ).map(([key, value], i) => (
+                      <Text
+                        key={i}
+                        style={styles.detalleItem}
+                      >
+                        • {key}:{" "}
+                        {Array.isArray(value)
+                          ? value.join(", ")
+                          : value || "No especificado"}
+                      </Text>
+                    ))}
+                  </View>
+                )}
+
+              {/* 🔹 OTRAS PRUEBAS CON DETALLE COMO ARRAY */}
               {Array.isArray(item.detalle) &&
                 item.detalle.length > 0 && (
                   <View style={styles.detalleBox}>
@@ -97,7 +128,10 @@ const ResumenScreen = ({
                       Detalle:
                     </Text>
                     {item.detalle.map((d, i) => (
-                      <Text key={i} style={styles.detalleItem}>
+                      <Text
+                        key={i}
+                        style={styles.detalleItem}
+                      >
                         • {d}
                       </Text>
                     ))}
@@ -106,14 +140,17 @@ const ResumenScreen = ({
             </View>
           ))}
 
-          <View style={styles.totalBox}>
-            <Text style={styles.totalTexto}>
-              Puntaje Total
-            </Text>
-            <Text style={styles.totalNumero}>
-              {puntajeTotal}
-            </Text>
-          </View>
+          {/* 🔹 MOSTRAR TOTAL SOLO SI HAY PUNTAJE */}
+          {puntajeTotal > 0 && (
+            <View style={styles.totalBox}>
+              <Text style={styles.totalTexto}>
+                Puntaje Total
+              </Text>
+              <Text style={styles.totalNumero}>
+                {puntajeTotal}
+              </Text>
+            </View>
+          )}
         </>
       )}
 
@@ -127,7 +164,9 @@ const ResumenScreen = ({
 
         <Button
           title="Volver sin guardar"
-          onPress={() => setScreen("Lista de Pacientes")}
+          onPress={() =>
+            setScreen("Lista de Pacientes")
+          }
         />
       </View>
     </ScrollView>
