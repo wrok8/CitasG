@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   DrawerLayoutAndroid,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
 
 import { EvaluationProvider } from './context/EvaluationContext';
@@ -53,6 +54,31 @@ function MainApp() {
   const [pacientes, setPacientes] = useState([]);
   const [pacienteActual, setPacienteActual] = useState(null);
 
+  // 🔵 ESTADO DEL SPLASH
+  const [loading, setLoading] = useState(true);
+
+  // 🔵 EFECTO SPLASH (2.5 segundos)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // 🔵 MOSTRAR SPLASH ANTES DE TODO
+  if (loading) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image
+          source={require("./assets/splash.png")}
+          style={styles.splashImage}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
   const renderScreen = () => {
     switch (screen) {
       case "Inicio":
@@ -77,14 +103,14 @@ function MainApp() {
         );
 
       case "Resumen":
-      return (
-        <ResumenScreen
-          paciente={pacienteActual}
-          setScreen={setScreen}
-          pacientes={pacientes}
-          setPacientes={setPacientes}
-        />
-      );
+        return (
+          <ResumenScreen
+            paciente={pacienteActual}
+            setScreen={setScreen}
+            pacientes={pacientes}
+            setPacientes={setPacientes}
+          />
+        );
 
       case "Lista de Pacientes":
         return (
@@ -114,171 +140,178 @@ function MainApp() {
       case "EntornoMenu":
         return <EntornoMenuScreen setScreen={setScreen} />;
 
+      case "OARS":
+        return (
+          <OARSScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-        case "OARS":
-  return (
-    <OARSScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "MoCA":
+        return (
+          <MoCAScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-        case "MoCA":
-  return (
-    <MoCAScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "FluenciaVerbal":
+        return (
+          <FluenciaVerbalAnimales
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-     case "FluenciaVerbal":
-      return (
-        <FluenciaVerbalAnimales
-          setScreen={setScreen}
-          pacienteActual={pacienteActual}
-          setPacienteActual={setPacienteActual}
-        />
-      );
       case "Mini-Cog":
-      return (
-        <MiniCogScreen
-          setScreen={setScreen}
-          pacienteActual={pacienteActual}
-          setPacienteActual={setPacienteActual}
-        />
-      );
+        return (
+          <MiniCogScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
       case "Mini-Mental":
-      return (
-        <MiniMentalScreen
-          setScreen={setScreen}
-          pacienteActual={pacienteActual}
-          setPacienteActual={setPacienteActual}
-        />
-      );
-case "MovilidadEntorno":
-  return (
-    <MovilidadEntornoScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+        return (
+          <MiniMentalScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
+      case "MovilidadEntorno":
+        return (
+          <MovilidadEntornoScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
       case "GDS-15":
-  return (
-    <GDS15Screen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+        return (
+          <GDS15Screen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-  case "CESD-7":
-  return (
-    <CESD7Screen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
-  case "Katz":
-  return (
-    <KatzScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
-  case "Lawton":
-  return (
-    <LawtonScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "CESD-7":
+        return (
+          <CESD7Screen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-  case "Braden":
-  return (
-    <BradenScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
-      
-  case "Norton":
-  return (
-    <NortonScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
-case "Maltrato":
-  return (
-    <EscalaMaltratoScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
-  case "Audicion":
-  return (
-    <AudicionScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "Katz":
+        return (
+          <KatzScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
- case "MNA-SF":
-  return (
-    <MNAScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "Lawton":
+        return (
+          <LawtonScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-  case "SARC-F":
-  return (
-    <SarcFScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-      pacientes={pacientes}
-      setPacientes={setPacientes}
-    />
-  );
+      case "Braden":
+        return (
+          <BradenScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-case "AgudezaVisual":
-  return (
-    <AgudezaVisualScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "Norton":
+        return (
+          <NortonScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-  case "MUST":
-  return (
-    <MUSTScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "Maltrato":
+        return (
+          <EscalaMaltratoScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
-case "VisionTest":
-  return (
-    <VisionTestScreen
-      setScreen={setScreen}
-      pacienteActual={pacienteActual}
-      setPacienteActual={setPacienteActual}
-    />
-  );
+      case "Audicion":
+        return (
+          <AudicionScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
+      case "MNA-SF":
+        return (
+          <MNAScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
+      case "SARC-F":
+        return (
+          <SarcFScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+            pacientes={pacientes}
+            setPacientes={setPacientes}
+          />
+        );
+
+      case "AgudezaVisual":
+        return (
+          <AgudezaVisualScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
+      case "MUST":
+        return (
+          <MUSTScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+
+      case "VisionTest":
+        return (
+          <VisionTestScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
 
       default:
         return <HomeScreen setScreen={setScreen} />;
@@ -329,6 +362,16 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+  },
+  splashImage: {
+    width: 250,
+    height: 250,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

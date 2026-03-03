@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { Accelerometer } from "expo-sensors";
 
 const Checkbox = ({ label, selected, onPress }) => (
   <TouchableOpacity
@@ -34,7 +35,7 @@ export default function OARSScreen({
   setPacienteActual,
   setScreen,
 }) {
-  const [form, setForm] = useState({
+  const initialState = {
     nombre: "",
     edad: "",
     sexo: "",
@@ -57,9 +58,12 @@ export default function OARSScreen({
     cuidadorRelacion: "",
     convivencia: "",
     evaluador: "",
-  });
+  };
 
+  const [form, setForm] = useState(initialState);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const shakeTimeout = useRef(null);
 
   const setField = (key, value) =>
     setForm({ ...form, [key]: value });
@@ -84,37 +88,67 @@ export default function OARSScreen({
     }
   };
 
- const finalizarPrueba = () => {
-  if (!pacienteActual) {
-    Alert.alert("Error", "No hay paciente activo");
-    return;
-  }
-
-  const nuevaPrueba = {
-    tipo: "OARS",
-    fecha: new Date().toLocaleDateString(),
-    detalle: {
-      respuestas: form, // 🔥 guardamos TODO el formulario completo
-    },
+  // 🔥 FUNCIÓN PARA LIMPIAR RESPUESTAS
+  const limpiarFormulario = () => {
+    setForm(initialState);
+    Alert.alert("Formulario reiniciado", "Agitaste el teléfono 📱");
   };
 
-  // 🔥 EXACTAMENTE igual lógica que Katz
-  setPacienteActual((prev) => ({
-    ...prev,
-    pruebas: [...(prev?.pruebas || []), nuevaPrueba],
-  }));
+  // 🔥 SENSOR DE SACUDIDA
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
 
-  Alert.alert("Prueba Guardada", "El formulario OARS fue guardado correctamente.");
+    const subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const totalForce = Math.sqrt(x * x + y * y + z * z);
 
-  // 🔥 MISMA REDIRECCIÓN QUE KATZ
-  setScreen("Agendar Cita");
-};
+      if (totalForce > 1.8) {
+        if (!shakeTimeout.current) {
+          limpiarFormulario();
+          shakeTimeout.current = setTimeout(() => {
+            shakeTimeout.current = null;
+          }, 2000);
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  const finalizarPrueba = () => {
+    if (!pacienteActual) {
+      Alert.alert("Error", "No hay paciente activo");
+      return;
+    }
+
+    const nuevaPrueba = {
+      tipo: "OARS",
+      fecha: new Date().toLocaleDateString(),
+      detalle: {
+        respuestas: form,
+      },
+    };
+
+    setPacienteActual((prev) => ({
+      ...prev,
+      pruebas: [...(prev?.pruebas || []), nuevaPrueba],
+    }));
+
+    Alert.alert(
+      "Prueba Guardada",
+      "El formulario OARS fue guardado correctamente."
+    );
+
+    setScreen("Agendar Cita");
+  };
 
   return (
     <ScrollView style={{ padding: 16 }}>
       <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 12 }}>
         Formulario OARS
       </Text>
+
+      
+
 
       {/* Datos básicos */}
       <Text>Nombre:</Text>
@@ -458,7 +492,6 @@ export default function OARSScreen({
           setField("evaluador", v)
         }
       />
-
       <View style={{ height: 30 }} />
 
       <Button
