@@ -33,6 +33,7 @@ import NortonScreen from "./screens/NortonScreen";
 import AudicionScreen from "./screens/AudicionScreen";
 import AgudezaVisualScreen from "./screens/AgudezaVisualScreen";
 import VisionTestScreen from "./screens/VisionTestScreen";
+import MNAScreen from "./screens/MNAScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -214,6 +215,14 @@ function MainApp() {
     />
   );
 
+ case "MNA-SF":
+  return (
+    <MNAScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
 case "AgudezaVisual":
   return (
     <AgudezaVisualScreen
