@@ -43,12 +43,12 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>7. Audición</Text>
+        <Text style={styles.buttonText}>7. Audicion</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>8. Visión</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={() => setScreen("AgudezaVisual")}>
+  <Text style={styles.buttonText}>8. Visión</Text>
+</TouchableOpacity>
 
       
     </View>

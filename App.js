@@ -30,6 +30,9 @@ import KatzScreen from "./screens/KatzScreen";
 import LawtonScreen from "./screens/LawtonScreen";
 import BradenScreen from "./screens/BradenScreen";
 import NortonScreen from "./screens/NortonScreen";
+import AudicionScreen from "./screens/AudicionScreen";
+import AgudezaVisualScreen from "./screens/AgudezaVisualScreen";
+import VisionTestScreen from "./screens/VisionTestScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -189,6 +192,33 @@ function MainApp() {
   case "Norton":
   return (
     <NortonScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+
+  case "Audicion":
+  return (
+    <AudicionScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+
+case "AgudezaVisual":
+  return (
+    <AgudezaVisualScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+
+case "VisionTest":
+  return (
+    <VisionTestScreen
       setScreen={setScreen}
       pacienteActual={pacienteActual}
       setPacienteActual={setPacienteActual}
