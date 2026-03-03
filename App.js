@@ -34,6 +34,7 @@ import AudicionScreen from "./screens/AudicionScreen";
 import AgudezaVisualScreen from "./screens/AgudezaVisualScreen";
 import VisionTestScreen from "./screens/VisionTestScreen";
 import MNAScreen from "./screens/MNAScreen";
+import MUSTScreen from "./screens/MUSTScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -223,9 +224,19 @@ function MainApp() {
       setPacienteActual={setPacienteActual}
     />
   );
+
 case "AgudezaVisual":
   return (
     <AgudezaVisualScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
+
+  case "MUST":
+  return (
+    <MUSTScreen
       setScreen={setScreen}
       pacienteActual={pacienteActual}
       setPacienteActual={setPacienteActual}

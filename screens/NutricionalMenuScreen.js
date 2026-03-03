@@ -13,7 +13,10 @@ export default function NutricionalMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>1. MNA-SF</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("MUST")}
+      >
         <Text style={styles.buttonText}>2. MUST</Text>
       </TouchableOpacity>
 
