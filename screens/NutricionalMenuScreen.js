@@ -20,9 +20,12 @@ export default function NutricionalMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>2. MUST</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>3. SARC-F</Text>
-      </TouchableOpacity>
+      <TouchableOpacity
+      style={styles.button}
+      onPress={() => setScreen("SARC-F")}
+    >
+      <Text style={styles.buttonText}>3. SARC-F</Text>
+    </TouchableOpacity>
     </View>
   );
 }

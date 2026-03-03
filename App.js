@@ -35,6 +35,7 @@ import AgudezaVisualScreen from "./screens/AgudezaVisualScreen";
 import VisionTestScreen from "./screens/VisionTestScreen";
 import MNAScreen from "./screens/MNAScreen";
 import MUSTScreen from "./screens/MUSTScreen";
+import SarcFScreen from "./screens/SarcFScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -225,6 +226,17 @@ function MainApp() {
     />
   );
 
+  case "SARC-F":
+  return (
+    <SarcFScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+      pacientes={pacientes}
+      setPacientes={setPacientes}
+    />
+  );
+  
 case "AgudezaVisual":
   return (
     <AgudezaVisualScreen
