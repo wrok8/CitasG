@@ -13,7 +13,10 @@ export default function EntornoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>1. OARS</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.button, styles.disabled]}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => setScreen("Maltrato")}
+      >
         <Text style={styles.buttonText}>
           2. Escala geriátrica de maltrato
         </Text>

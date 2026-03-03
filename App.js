@@ -36,6 +36,7 @@ import VisionTestScreen from "./screens/VisionTestScreen";
 import MNAScreen from "./screens/MNAScreen";
 import MUSTScreen from "./screens/MUSTScreen";
 import SarcFScreen from "./screens/SarcFScreen";
+import EscalaMaltratoScreen from "./screens/EscalaMaltratoScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -207,7 +208,14 @@ function MainApp() {
       setPacienteActual={setPacienteActual}
     />
   );
-
+case "Maltrato":
+  return (
+    <EscalaMaltratoScreen
+      setScreen={setScreen}
+      pacienteActual={pacienteActual}
+      setPacienteActual={setPacienteActual}
+    />
+  );
   case "Audicion":
   return (
     <AudicionScreen
@@ -236,7 +244,7 @@ function MainApp() {
       setPacientes={setPacientes}
     />
   );
-  
+
 case "AgudezaVisual":
   return (
     <AgudezaVisualScreen
