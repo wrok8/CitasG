@@ -88,13 +88,13 @@ export default function OARSScreen({
     }
   };
 
-  // 🔥 FUNCIÓN PARA LIMPIAR RESPUESTAS
+  // FUNCIÓN PARA LIMPIAR RESPUESTAS
   const limpiarFormulario = () => {
     setForm(initialState);
     Alert.alert("Formulario reiniciado", "Agitaste el teléfono 📱");
   };
 
-  // 🔥 SENSOR DE SACUDIDA
+  // SENSOR DE SACUDIDA
   useEffect(() => {
     Accelerometer.setUpdateInterval(300);
 
