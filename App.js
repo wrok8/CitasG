@@ -12,6 +12,7 @@ import {
 import { EvaluationProvider } from './context/EvaluationContext';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+import MapScreen from "./screens/MapScreen";
 import HomeScreen from "./screens/HomeScreen";
 import DetailScreen from "./screens/DetailScreen";
 import ProfileScreen from "./screens/ProfileScreen";
@@ -39,6 +40,8 @@ import MUSTScreen from "./screens/MUSTScreen";
 import SarcFScreen from "./screens/SarcFScreen";
 import EscalaMaltratoScreen from "./screens/EscalaMaltratoScreen";
 import MovilidadEntornoScreen from "./screens/MovilidadEntornoScreen";
+import PersonalScreen from "./screens/PersonalScreen";
+import WeatherScreen from "./screens/WeatherScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -93,6 +96,15 @@ function MainApp() {
       case "Configuración":
         return <SettingsScreen />;
 
+      case "Agregar Personal":
+        return <PersonalScreen setScreen={setScreen}/>;
+
+      case "Mapa":
+        return <MapScreen />;
+
+      case "Clima":
+        return <WeatherScreen />;
+        
       case "Agendar Cita":
         return (
           <RegisterPatientScreen

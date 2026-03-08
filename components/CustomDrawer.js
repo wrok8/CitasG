@@ -34,11 +34,18 @@ export default function CustomDrawer({
       </View>
 
       <Item label="Inicio" />
+      <Item label="Agregar Personal" />
       <Item label="Agendar Cita" />
       <Item label="Lista de Pacientes" />
       <Item label="Evaluaciones" />
       <Item label="Perfil" />
       <Item label="Configuración" />
+      <Item label="Mapa" />
+      
+
+      <TouchableOpacity onPress={() => setScreen("Clima")}>
+      <Text>Clima</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.logout} onPress={onLogout}>
         <Text style={styles.logoutText}>Salir</Text>
