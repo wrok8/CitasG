@@ -47,8 +47,16 @@ export default function CustomDrawer({
       <Text>Clima</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity onPress={() => setScreen("Usuarios")}>
+      <Text>👤 Usuarios</Text>
+     </TouchableOpacity>
+
       <TouchableOpacity style={styles.logout} onPress={onLogout}>
         <Text style={styles.logoutText}>Salir</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setScreen("Preferencias Paciente")}>
+        <Text>⚙️ Preferencias Paciente</Text>
       </TouchableOpacity>
     </View>
   );

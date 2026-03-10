@@ -42,6 +42,8 @@ import EscalaMaltratoScreen from "./screens/EscalaMaltratoScreen";
 import MovilidadEntornoScreen from "./screens/MovilidadEntornoScreen";
 import PersonalScreen from "./screens/PersonalScreen";
 import WeatherScreen from "./screens/WeatherScreen";
+import UsuarioScreen from "./screens/UsuarioScreen";
+import PreferenciasPacienteScreen from "./screens/PreferenciasPacienteScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -104,6 +106,12 @@ function MainApp() {
 
       case "Clima":
         return <WeatherScreen />;
+
+      case "Usuarios":
+         return <UsuarioScreen />;
+
+      case "Preferencias Paciente":
+        return <PreferenciasPacienteScreen />;
         
       case "Agendar Cita":
         return (
