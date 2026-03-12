@@ -7,192 +7,186 @@ import {
   Button,
   StyleSheet,
   Alert,
+  TouchableOpacity
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function UsuarioScreen() {
+export default function UsuarioScreen({ setScreen }) {
 
   const [nombre, setNombre] = useState("");
+  const [contacto, setContacto] = useState("");
   const [correo, setCorreo] = useState("");
-  const [usuarioGuardado, setUsuarioGuardado] = useState(null);
+  const [telefono, setTelefono] = useState("");
 
-  const STORAGE_KEY = "@perfil_usuario";
+  const [usuarios, setUsuarios] = useState([]);
+
+  const STORAGE_KEY = "@usuarios_app";
+  const USER_SELECTED = "@usuario_seleccionado";
 
   useEffect(() => {
-    obtenerUsuario();
+    obtenerUsuarios();
   }, []);
 
   const limpiarCampos = () => {
     setNombre("");
+    setContacto("");
     setCorreo("");
+    setTelefono("");
   };
 
   const guardarUsuario = async () => {
 
-    if (!nombre.trim() || !correo.trim()) {
-      Alert.alert("Campos incompletos", "Debes capturar nombre y correo.");
+    if (!nombre || !correo || !telefono) {
+      Alert.alert("Error", "Completa los campos obligatorios");
       return;
     }
 
-    const usuario = {
+    const nuevoUsuario = {
+      id: Date.now(),
       nombre,
+      contacto,
       correo,
+      telefono,
     };
 
-    try {
+    const nuevosUsuarios = [...usuarios, nuevoUsuario];
 
-      const usuarioJSON = JSON.stringify(usuario);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nuevosUsuarios));
 
-      await AsyncStorage.setItem(STORAGE_KEY, usuarioJSON);
+    setUsuarios(nuevosUsuarios);
 
-      setUsuarioGuardado(usuario);
+    limpiarCampos();
 
-      limpiarCampos();
-
-      Alert.alert("Éxito", "Usuario guardado correctamente.");
-
-    } catch (error) {
-
-      Alert.alert("Error", "No fue posible guardar la información.");
-      console.log(error);
-
-    }
+    Alert.alert("Usuario guardado");
   };
 
-  const obtenerUsuario = async () => {
+  const obtenerUsuarios = async () => {
 
-    try {
+    const data = await AsyncStorage.getItem(STORAGE_KEY);
 
-      const usuarioJSON = await AsyncStorage.getItem(STORAGE_KEY);
-
-      if (usuarioJSON !== null) {
-
-        const usuario = JSON.parse(usuarioJSON);
-
-        setUsuarioGuardado(usuario);
-
-        setNombre(usuario.nombre);
-        setCorreo(usuario.correo);
-
-      }
-
-    } catch (error) {
-
-      Alert.alert("Error", "No fue posible recuperar la información.");
-
+    if (data) {
+      setUsuarios(JSON.parse(data));
     }
+
   };
 
-  const actualizarUsuario = async () => {
+  const escogerUsuario = async (usuario) => {
 
-    try {
+    await AsyncStorage.setItem(
+      USER_SELECTED,
+      JSON.stringify(usuario)
+    );
 
-      const usuarioExiste = await AsyncStorage.getItem(STORAGE_KEY);
+    Alert.alert("Usuario seleccionado", usuario.nombre);
 
-      if (usuarioExiste === null) {
-        Alert.alert("Sin registro previo", "No hay usuario guardado.");
-        return;
-      }
-
-      const usuarioActualizado = {
-        nombre,
-        correo,
-      };
-
-      const usuarioJSON = JSON.stringify(usuarioActualizado);
-
-      await AsyncStorage.setItem(STORAGE_KEY, usuarioJSON);
-
-      setUsuarioGuardado(usuarioActualizado);
-
-      limpiarCampos();
-
-      Alert.alert("Usuario actualizado correctamente");
-
-    } catch (error) {
-
-      Alert.alert("Error", "No fue posible actualizar la información.");
-
+    if (setScreen) {
+      setScreen("RegisterPatient"); 
     }
+
   };
 
-  const eliminarUsuario = async () => {
+  const eliminarUsuario = async (id) => {
 
-    try {
+    const nuevosUsuarios = usuarios.filter((u) => u.id !== id);
 
-      await AsyncStorage.removeItem(STORAGE_KEY);
+    setUsuarios(nuevosUsuarios);
 
-      setUsuarioGuardado(null);
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(nuevosUsuarios)
+    );
 
-      limpiarCampos();
+    Alert.alert("Usuario eliminado");
+  };
 
-      Alert.alert("Usuario eliminado");
+  const eliminarTodos = async () => {
 
-    } catch (error) {
+    await AsyncStorage.removeItem(STORAGE_KEY);
 
-      Alert.alert("Error al eliminar");
+    setUsuarios([]);
 
-    }
+    Alert.alert("Todos los usuarios eliminados");
+
   };
 
   return (
+
     <ScrollView contentContainerStyle={styles.container}>
 
-      <Text style={styles.titulo}>Registro de Usuario</Text>
-
-      <Text style={styles.label}>Nombre</Text>
+      <Text style={styles.titulo}>Registrar Usuario</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Escribe tu nombre"
+        placeholder="Nombre completo"
         value={nombre}
         onChangeText={setNombre}
       />
 
-      <Text style={styles.label}>Correo</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Contacto"
+        value={contacto}
+        onChangeText={setContacto}
+      />
 
       <TextInput
         style={styles.input}
-        placeholder="Escribe tu correo"
+        placeholder="Correo"
         value={correo}
         onChangeText={setCorreo}
-        keyboardType="email-address"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Teléfono"
+        value={telefono}
+        onChangeText={setTelefono}
+        keyboardType="phone-pad"
       />
 
       <View style={styles.boton}>
-        <Button title="Guardar usuario" onPress={guardarUsuario} />
+        <Button title="Guardar Usuario" onPress={guardarUsuario} />
       </View>
 
       <View style={styles.boton}>
-        <Button title="Obtener usuario" onPress={obtenerUsuario} />
-      </View>
-
-      <View style={styles.boton}>
-        <Button title="Actualizar usuario" onPress={actualizarUsuario} />
-      </View>
-
-      <View style={styles.boton}>
-        <Button title="Eliminar usuario" onPress={eliminarUsuario} />
+        <Button title="Eliminar Todos" onPress={eliminarTodos} />
       </View>
 
       <View style={styles.resultado}>
 
-        <Text style={styles.subtitulo}>Usuario almacenado</Text>
+        <Text style={styles.subtitulo}>Usuarios Guardados</Text>
 
-        {usuarioGuardado ? (
-          <>
-            <Text style={styles.texto}>
-              Nombre: {usuarioGuardado.nombre}
-            </Text>
+        {usuarios.map((u) => (
 
-            <Text style={styles.texto}>
-              Correo: {usuarioGuardado.correo}
-            </Text>
-          </>
-        ) : (
-          <Text style={styles.texto}>No hay datos guardados</Text>
-        )}
+          <View key={u.id} style={styles.card}>
+
+            <Text style={styles.nombre}>{u.nombre}</Text>
+            <Text>Contacto: {u.contacto}</Text>
+            <Text>Email: {u.correo}</Text>
+            <Text>Tel: {u.telefono}</Text>
+
+            <View style={styles.botonesCard}>
+
+              <TouchableOpacity
+                style={styles.botonEscoger}
+                onPress={() => escogerUsuario(u)}
+              >
+                <Text style={styles.textoBoton}>Escoger</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.botonEliminar}
+                onPress={() => eliminarUsuario(u.id)}
+              >
+                <Text style={styles.textoBoton}>Eliminar</Text>
+              </TouchableOpacity>
+
+            </View>
+
+          </View>
+
+        ))}
 
       </View>
 
@@ -202,54 +196,71 @@ export default function UsuarioScreen() {
 
 const styles = StyleSheet.create({
 
-  container: {
-    flexGrow: 1,
-    padding: 20,
-    justifyContent: "center",
-    backgroundColor: "#ffffff",
+  container:{
+    padding:20
   },
 
-  titulo: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
+  titulo:{
+    fontSize:24,
+    fontWeight:"bold",
+    marginBottom:20
   },
 
-  label: {
-    fontSize: 16,
-    marginTop: 12,
-    marginBottom: 6,
+  input:{
+    borderWidth:1,
+    borderColor:"#999",
+    borderRadius:8,
+    padding:10,
+    marginTop:10
   },
 
-  input: {
-    borderWidth: 1,
-    borderColor: "#999",
-    borderRadius: 8,
-    padding: 10,
+  boton:{
+    marginTop:15
   },
 
-  boton: {
-    marginTop: 12,
+  resultado:{
+    marginTop:25
   },
 
-  resultado: {
-    marginTop: 25,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 15,
+  subtitulo:{
+    fontSize:18,
+    fontWeight:"bold"
   },
 
-  subtitulo: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 10,
+  card:{
+    borderWidth:1,
+    borderColor:"#ccc",
+    padding:12,
+    marginTop:10,
+    borderRadius:10
   },
 
-  texto: {
-    fontSize: 16,
-    marginBottom: 5,
+  nombre:{
+    fontWeight:"bold",
+    fontSize:16
   },
+
+  botonesCard:{
+    flexDirection:"row",
+    marginTop:10,
+    gap:10
+  },
+
+  botonEscoger:{
+    backgroundColor:"#1565C0",
+    padding:10,
+    borderRadius:6
+  },
+
+  botonEliminar:{
+    backgroundColor:"#C62828",
+    padding:10,
+    borderRadius:6
+  },
+
+  textoBoton:{
+    color:"white",
+    fontWeight:"bold"
+  }
 
 });
