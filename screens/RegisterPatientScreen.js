@@ -11,6 +11,8 @@ import {
   Alert,
 } from "react-native";
 
+import { ref, onValue, push } from "firebase/database";
+import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
@@ -49,67 +51,58 @@ export default function RegisterPatientScreen({
     cargarUsuarioSeleccionado();
   }, []);
 
-  const cargarUsuarios = async () => {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEY);
+  const cargarUsuarios = () => {
+    const usuariosRef = ref(db, "usuarios");
 
-      if (data !== null) {
-        setUsuarios(JSON.parse(data));
+    onValue(usuariosRef, (snapshot) => {
+      const data = snapshot.val();
+
+      if (data) {
+        const lista = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setUsuarios(lista);
+      } else {
+        setUsuarios([]);
       }
-
-    } catch (error) {
-      Alert.alert("Error", "No se pudieron cargar los usuarios");
-    }
+    });
   };
 
   const cargarUsuarioSeleccionado = async () => {
-
     try {
-
       const data = await AsyncStorage.getItem(USER_SELECTED);
 
       if (data) {
-
         const usuario = JSON.parse(data);
 
-        setForm((prev)=>({
+        setForm((prev) => ({
           ...prev,
           nombre: usuario.nombre,
-          contacto: usuario.contacto,
+          contacto: usuario.correo, 
           email: usuario.correo,
           telefono: usuario.telefono
         }));
-
       }
-
     } catch (error) {
-
       Alert.alert("Error","No se pudo cargar el usuario seleccionado");
-
     }
-
   };
 
   const seleccionarUsuario = (usuario) => {
-
     setForm({
       ...form,
       nombre: usuario.nombre,
-      contacto: usuario.contacto,
+      contacto: usuario.correo,
       email: usuario.correo,
       telefono: usuario.telefono,
     });
-
   };
 
   const onChangeDate = (event, selectedDate) => {
-
     const currentDate = selectedDate || form.fecha;
-
     setShowDatePicker(Platform.OS === "ios");
-
     setForm({ ...form, fecha: currentDate });
-
   };
 
   const formatDate = (date) => {
@@ -119,25 +112,31 @@ export default function RegisterPatientScreen({
   const handleSubmit = () => {
 
     if (!form.nombre || !form.telefono) {
-
       Alert.alert("Error", "Debes seleccionar un usuario");
-
       return;
-
     }
 
-    setPacienteActual(form);
+    const nuevaCita = {
+      usuarioId: form.telefono, 
+      nombre: form.nombre,
+      contacto: form.contacto,
+      email: form.email,
+      telefono: form.telefono,
+      fecha: form.fecha.toISOString(),
+      sintomas: form.sintomas,
+      evaluaciones: form.evaluaciones,
+      creadoEn: new Date().toISOString()
+    };
 
+    push(ref(db, "pacientes"), nuevaCita);
+
+    setPacienteActual(nuevaCita);
     setScreen("Resumen");
-
   };
 
   const handleNavigate = (screenName) => {
-
     setPacienteActual(form);
-
     setScreen(screenName);
-
   };
 
   return (
@@ -145,8 +144,6 @@ export default function RegisterPatientScreen({
     <View style={{ flex: 1 }}>
 
       <ScrollView contentContainerStyle={styles.container}>
-
-        {/* PACIENTE ACTIVO */}
 
         {form.nombre !== "" && (
           <View style={styles.pacienteActivo}>
@@ -246,10 +243,8 @@ export default function RegisterPatientScreen({
         <Text style={styles.subtitle}>Evaluaciones Geriátricas</Text>
 
         {/* COGNITIVO */}
-
         <View style={styles.switchRow}>
           <Text>Cognitivo</Text>
-
           <Switch
             value={form.evaluaciones.Cognitivo}
             onValueChange={(v) =>
@@ -274,10 +269,8 @@ export default function RegisterPatientScreen({
         )}
 
         {/* AFECTIVO */}
-
         <View style={styles.switchRow}>
           <Text>Afectivo</Text>
-
           <Switch
             value={form.evaluaciones.Afectivo}
             onValueChange={(v) =>
@@ -302,10 +295,8 @@ export default function RegisterPatientScreen({
         )}
 
         {/* FUNCIONAMIENTO */}
-
         <View style={styles.switchRow}>
           <Text>Funcionamiento</Text>
-
           <Switch
             value={form.evaluaciones.Funcionamiento}
             onValueChange={(v) =>
@@ -333,10 +324,8 @@ export default function RegisterPatientScreen({
         )}
 
         {/* NUTRICIONAL */}
-
         <View style={styles.switchRow}>
           <Text>Nutricional</Text>
-
           <Switch
             value={form.evaluaciones.Nutricional}
             onValueChange={(v) =>
@@ -361,10 +350,8 @@ export default function RegisterPatientScreen({
         )}
 
         {/* ENTORNO */}
-
         <View style={styles.switchRow}>
           <Text>Entorno</Text>
-
           <Switch
             value={form.evaluaciones.Entorno}
             onValueChange={(v) =>
@@ -406,34 +393,28 @@ export default function RegisterPatientScreen({
 }
 
 const styles = StyleSheet.create({
-
   container:{ padding:20 },
-
   pacienteActivo:{
     backgroundColor:"#E3F2FD",
     padding:12,
     borderRadius:10,
     marginBottom:15
   },
-
   pacienteTexto:{
     fontWeight:"bold",
     color:"#0D47A1"
   },
-
   subtitle:{
     fontSize:20,
     fontWeight:"bold",
     marginBottom:15,
     color:"#0D47A1"
   },
-
   label:{
     marginTop:15,
     fontWeight:"bold",
     color:"#1565C0"
   },
-
   input:{
     borderWidth:1,
     borderColor:"#1565C0",
@@ -441,12 +422,10 @@ const styles = StyleSheet.create({
     padding:12,
     marginTop:5
   },
-
   textArea:{
     height:100,
     textAlignVertical:"top"
   },
-
   dateButton:{
     borderWidth:1,
     borderColor:"#1565C0",
@@ -455,34 +434,26 @@ const styles = StyleSheet.create({
     backgroundColor:"#E3F2FD",
     marginTop:5
   },
-
-  dateText:{
-    fontSize:16
-  },
-
+  dateText:{ fontSize:16 },
   switchRow:{
     flexDirection:"row",
     justifyContent:"space-between",
     marginVertical:10
   },
-
   button:{
     backgroundColor:"#1565C0",
     padding:18,
     borderRadius:12,
     marginTop:15
   },
-
   secondaryButton:{
     backgroundColor:"#2E7D32"
   },
-
   buttonText:{
     color:"white",
     textAlign:"center",
     fontWeight:"bold"
   },
-
   userCard:{
     borderWidth:1,
     borderColor:"#ccc",
@@ -490,10 +461,8 @@ const styles = StyleSheet.create({
     borderRadius:10,
     marginBottom:10
   },
-
   userName:{
     fontWeight:"bold",
     fontSize:16
   }
-
 });

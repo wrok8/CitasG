@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect} from "react";
+import { ref, onValue, remove } from "firebase/database";
+import { db } from "../firebaseConfig";
+
 import {
   View,
   Text,
@@ -28,13 +31,27 @@ export default function ListaPacientesScreen({
   };
 
   const eliminarPaciente = () => {
-    const nuevaLista = pacientes.filter(
-      (p) => getPacienteKey(p) !== getPacienteKey(pacienteSeleccionado)
-    );
-
-    setPacientes(nuevaLista);
+    remove(ref(db, `pacientes/${pacienteSeleccionado.id}`));
     setModalVisible(false);
   };
+
+  useEffect(() => {
+  const pacientesRef = ref(db, "pacientes");
+
+  onValue(pacientesRef, (snapshot) => {
+    const data = snapshot.val();
+
+    if (data) {
+      const lista = Object.keys(data).map((key) => ({
+        id: key,
+        ...data[key],
+      }));
+      setPacientes(lista);
+    } else {
+      setPacientes([]);
+    }
+  });
+}, []);
 
   return (
     <View style={{ flex: 1 }}>
