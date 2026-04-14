@@ -41,6 +41,7 @@ export default function CustomDrawer({
       <Item label="Perfil" />
       <Item label="Configuración" />
       <Item label="Mapa" />
+      <Item label="Signos Vitales" />
       
 
       <TouchableOpacity onPress={() => setScreen("Clima")}>

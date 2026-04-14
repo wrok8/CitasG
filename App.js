@@ -13,6 +13,7 @@ import { EvaluationProvider } from './context/EvaluationContext';
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import MapScreen from "./screens/MapScreen";
+import SignosVitalesScreen from "./screens/SignosVitalesScreen";
 import HomeScreen from "./screens/HomeScreen";
 import DetailScreen from "./screens/DetailScreen";
 import ProfileScreen from "./screens/ProfileScreen";
@@ -103,6 +104,9 @@ function MainApp() {
 
       case "Mapa":
         return <MapScreen />;
+      
+      case "Signos Vitales":
+        return <SignosVitalesScreen />;
 
       case "Clima":
         return <WeatherScreen />;
