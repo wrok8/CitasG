@@ -1,7 +1,4 @@
-import React, { useState, useEffect} from "react";
-import { ref, onValue, remove } from "firebase/database";
-import { db } from "../firebaseConfig";
-
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +9,14 @@ import {
   Pressable,
 } from "react-native";
 
+import {
+  ref,
+  onValue,
+  remove,
+  update,
+} from "firebase/database";
+import { db } from "../firebaseConfig";
+
 export default function ListaPacientesScreen({
   pacientes,
   setScreen,
@@ -19,10 +24,11 @@ export default function ListaPacientesScreen({
   setPacientes,
 }) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
+  const [pacienteSeleccionado, setPacienteSeleccionado] =
+    useState(null);
 
   const getPacienteKey = (paciente) => {
-    return `${paciente.nombre}-${paciente.telefono}-${paciente.fecha}`;
+    return paciente.id || `${paciente.nombre}-${paciente.telefono}-${paciente.fecha}`;
   };
 
   const abrirModal = (paciente) => {
@@ -30,28 +36,45 @@ export default function ListaPacientesScreen({
     setModalVisible(true);
   };
 
+  // ELIMINAR CITA
   const eliminarPaciente = () => {
-    remove(ref(db, `pacientes/${pacienteSeleccionado.id}`));
+    if (!pacienteSeleccionado?.id) return;
+
+    remove(ref(db, `citas/${pacienteSeleccionado.id}`));
+    setModalVisible(false);
+  };
+
+  // CANCELAR CITA
+  const cancelarCita = () => {
+    if (!pacienteSeleccionado?.id) return;
+
+    update(ref(db, `citas/${pacienteSeleccionado.id}`), {
+      status: "Cancelada",
+    });
+
     setModalVisible(false);
   };
 
   useEffect(() => {
-  const pacientesRef = ref(db, "pacientes");
+    const pacientesRef = ref(db, "citas");
 
-  onValue(pacientesRef, (snapshot) => {
-    const data = snapshot.val();
+    const unsubscribe = onValue(pacientesRef, (snapshot) => {
+      const data = snapshot.val();
 
-    if (data) {
-      const lista = Object.keys(data).map((key) => ({
-        id: key,
-        ...data[key],
-      }));
-      setPacientes(lista);
-    } else {
-      setPacientes([]);
-    }
-  });
-}, []);
+      if (data) {
+        const lista = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+
+        setPacientes(lista);
+      } else {
+        setPacientes([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <View style={{ flex: 1 }}>
@@ -70,7 +93,9 @@ export default function ListaPacientesScreen({
               style={styles.card}
               onPress={() => abrirModal(item)}
             >
-              <Text style={styles.title}>{item.nombre}</Text>
+              <Text style={styles.title}>
+                {item.nombre}
+              </Text>
 
               <Text>
                 Fecha:{" "}
@@ -79,8 +104,13 @@ export default function ListaPacientesScreen({
                   : "Sin fecha"}
               </Text>
 
+              <Text>
+                Estado: {item.status || "Agenda"}
+              </Text>
+
               <Text numberOfLines={1}>
-                Síntomas: {item.sintomas || "No especificados"}
+                Síntomas:{" "}
+                {item.sintomas || "No especificados"}
               </Text>
 
               <Text style={styles.pruebasText}>
@@ -97,7 +127,9 @@ export default function ListaPacientesScreen({
         transparent
         animationType="fade"
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() =>
+          setModalVisible(false)
+        }
       >
         <View style={styles.overlay}>
           <View style={styles.modalContainer}>
@@ -108,7 +140,9 @@ export default function ListaPacientesScreen({
             <Pressable
               style={styles.modalButton}
               onPress={() => {
-                setPacienteActual(pacienteSeleccionado);
+                setPacienteActual(
+                  pacienteSeleccionado
+                );
                 setModalVisible(false);
                 setScreen("Resumen");
               }}
@@ -121,7 +155,9 @@ export default function ListaPacientesScreen({
             <Pressable
               style={styles.modalButton}
               onPress={() => {
-                setPacienteActual(pacienteSeleccionado);
+                setPacienteActual(
+                  pacienteSeleccionado
+                );
                 setModalVisible(false);
                 setScreen("Agendar Cita");
               }}
@@ -132,7 +168,10 @@ export default function ListaPacientesScreen({
             </Pressable>
 
             <Pressable
-              style={[styles.modalButton, { backgroundColor: "#D32F2F" }]}
+              style={[
+                styles.modalButton,
+                { backgroundColor: "#D32F2F" },
+              ]}
               onPress={eliminarPaciente}
             >
               <Text style={styles.modalButtonText}>
@@ -141,11 +180,28 @@ export default function ListaPacientesScreen({
             </Pressable>
 
             <Pressable
-              style={[styles.modalButton, { backgroundColor: "#9E9E9E" }]}
-              onPress={() => setModalVisible(false)}
+              style={[
+                styles.modalButton,
+                { backgroundColor: "#F57C00" },
+              ]}
+              onPress={cancelarCita}
             >
               <Text style={styles.modalButtonText}>
-                Cancelar
+                ❌ Cancelar Cita
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.modalButton,
+                { backgroundColor: "#9E9E9E" },
+              ]}
+              onPress={() =>
+                setModalVisible(false)
+              }
+            >
+              <Text style={styles.modalButtonText}>
+                Cerrar
               </Text>
             </Pressable>
           </View>

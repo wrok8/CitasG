@@ -22,21 +22,18 @@ import { Accelerometer } from "expo-sensors";
 const SCREEN_W = Dimensions.get("window").width - 32;
 const STORAGE_KEY = "@signos_vitales_historial";
 
-// ── Rangos normales ──────────────────────────────────────────────────────────
 const RANGOS = {
   bpm:  { min: 60,   max: 100,  label: "60–100 BPM"  },
   temp: { min: 36.0, max: 37.5, label: "36–37.5 °C"  },
   spo2: { min: 95,   max: 100,  label: "> 95 %"       },
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 const enRango = (val, key) => val >= RANGOS[key].min && val <= RANGOS[key].max;
 const rand = (min, max, dec = 0) => {
   const v = Math.random() * (max - min) + min;
   return dec ? parseFloat(v.toFixed(dec)) : Math.round(v);
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function SignosVitalesScreen() {
   const [mediciones, setMediciones] = useState([]);   // historial (state)
   const [accel, setAccel]           = useState({ x: 0, y: 0, z: 0 });

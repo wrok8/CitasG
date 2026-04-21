@@ -6,7 +6,7 @@ export default function CognitivoMenuScreen({ setScreen }) {
     <View style={styles.container}>
       <Text style={styles.title}>Evaluaciones Cognitivas</Text>
 
-      {/* 1️⃣ Fluencia Verbal */}
+      {/* Fluencia Verbal */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setScreen("FluenciaVerbal")}
@@ -16,7 +16,7 @@ export default function CognitivoMenuScreen({ setScreen }) {
         </Text>
       </TouchableOpacity>
 
-      {/* 2️⃣ Mini-Cog */}
+      {/* Mini-Cog */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setScreen("Mini-Cog")}

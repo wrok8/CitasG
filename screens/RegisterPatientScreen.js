@@ -15,6 +15,7 @@ import { ref, onValue, push } from "firebase/database";
 import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as SQLite from "expo-sqlite";
 
 export default function RegisterPatientScreen({
   setScreen,
@@ -28,6 +29,8 @@ export default function RegisterPatientScreen({
   const [usuarios, setUsuarios] = useState([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [medicos, setMedicos] = useState([]);
+
   const formInicial = {
     nombre: "",
     contacto: "",
@@ -35,6 +38,14 @@ export default function RegisterPatientScreen({
     telefono: "",
     fecha: new Date(),
     sintomas: "",
+    //lo q agregue del examen para las citas
+    hora: "",
+    medicoId: "",
+    medicoNombre: "",
+    motivo: "",
+    tipoCita: "Primera vez",
+    status: "Agenda",
+
     evaluaciones: {
       Cognitivo: false,
       Afectivo: false,
@@ -47,10 +58,20 @@ export default function RegisterPatientScreen({
   const [form, setForm] = useState(formInicial);
 
   useEffect(() => {
-    cargarUsuarios();
-    cargarUsuarioSeleccionado();
-  }, []);
+  cargarUsuarios();
+  cargarUsuarioSeleccionado();
+  cargarMedicos();
 
+  if (pacienteActual) {
+    setForm({
+      ...formInicial,
+      ...pacienteActual,
+      evaluaciones:
+        pacienteActual.evaluaciones ||
+        formInicial.evaluaciones,
+    });
+  }
+}, []);
   const cargarUsuarios = () => {
     const usuariosRef = ref(db, "usuarios");
 
@@ -109,35 +130,84 @@ export default function RegisterPatientScreen({
     return new Date(date).toLocaleDateString();
   };
 
-  const handleSubmit = () => {
-
-    if (!form.nombre || !form.telefono) {
-      Alert.alert("Error", "Debes seleccionar un usuario");
-      return;
-    }
-
-    const nuevaCita = {
-      usuarioId: form.telefono, 
+  const guardarCita = () => {
+  const nuevaCita = {
+      pacienteId: form.telefono,
       nombre: form.nombre,
-      contacto: form.contacto,
-      email: form.email,
-      telefono: form.telefono,
+      medicoId: form.medicoId,
+      medicoNombre: form.medicoNombre,
       fecha: form.fecha.toISOString(),
-      sintomas: form.sintomas,
+      hora: form.hora,
+      motivo: form.motivo,
       evaluaciones: form.evaluaciones,
-      creadoEn: new Date().toISOString()
+      tipoCita: form.tipoCita,
+      status: "Agenda",
     };
 
-    push(ref(db, "pacientes"), nuevaCita);
+  push(ref(db, "citas"), nuevaCita);
 
-    setPacienteActual(nuevaCita);
-    setScreen("Resumen");
+  setPacienteActual(nuevaCita);
+  setScreen("Resumen");
+};
+
+  const handleSubmit = () => {
+  if (!form.nombre || !form.telefono) {
+    Alert.alert("Error", "Debes seleccionar un usuario");
+    return;
+  }
+
+  const nuevaCita = {
+    pacienteId: form.telefono,
+    nombre: form.nombre,
+    contacto: form.contacto,
+    email: form.email,
+    telefono: form.telefono,
+    medicoId: form.medicoId,
+    medicoNombre: form.medicoNombre,
+    fecha:
+      form.fecha instanceof Date
+        ? form.fecha.toISOString()
+        : form.fecha,
+    hora: form.hora,
+    motivo: form.motivo,
+    sintomas: form.sintomas,
+    evaluaciones: form.evaluaciones,
+    tipoCita: form.tipoCita,
+    status: "Agenda",
+
+    
+    pruebas: pacienteActual?.pruebas || [],
   };
+
+  // guardar en firebase
+  push(ref(db, "citas"), nuevaCita);
+
+ 
+  setPacienteActual((prev) => ({
+    ...prev,
+    ...nuevaCita,
+    pruebas: prev?.pruebas || [],
+  }));
+
+  setScreen("Resumen");
+};
+
+  
 
   const handleNavigate = (screenName) => {
     setPacienteActual(form);
     setScreen(screenName);
   };
+
+  const cargarMedicos = async () => {
+  const dbLocal = await SQLite.openDatabaseAsync("hospital.db");
+
+  const lista = await dbLocal.getAllAsync(
+    "SELECT * FROM personal"
+  );
+
+  setMedicos(lista);
+};
 
   return (
 
@@ -207,7 +277,6 @@ export default function RegisterPatientScreen({
         />
 
         <Text style={styles.label}>Fecha de Cita</Text>
-
         <TouchableOpacity
           style={styles.dateButton}
           onPress={() => setShowDatePicker(true)}
@@ -229,6 +298,49 @@ export default function RegisterPatientScreen({
           />
 
         )}
+        
+        <Text style={styles.label}>Seleccionar Médico</Text>
+        {medicos.map((m) => (
+          <TouchableOpacity
+            key={m.id}
+            style={styles.userCard}
+            onPress={() =>
+              setForm({
+                ...form,
+                medicoId: m.id,
+                medicoNombre: `${m.nombre} ${m.apellido1}`
+              })
+            }
+          >
+            <Text style={styles.userName}>
+              Dr. {m.nombre} {m.apellido1}
+            </Text>
+            <Text>{m.especialidad}</Text>
+            <Text>{m.turno}</Text>
+          </TouchableOpacity>
+        ))}
+
+        <Text style={styles.label}>Hora</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="10:00"
+          value={form.hora}
+          onChangeText={(t) => setForm({ ...form, hora: t })}
+        />
+
+        <Text style={styles.label}>Motivo</Text>
+        <TextInput
+          style={styles.input}
+          value={form.motivo}
+          onChangeText={(t) => setForm({ ...form, motivo: t })}
+        />
+
+
+        
+
+
+
+        
 
         <Text style={styles.label}>Síntomas</Text>
 
@@ -240,6 +352,7 @@ export default function RegisterPatientScreen({
           onChangeText={(t) => setForm({ ...form, sintomas: t })}
         />
 
+      
         <Text style={styles.subtitle}>Evaluaciones Geriátricas</Text>
 
         {/* COGNITIVO */}

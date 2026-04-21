@@ -1,4 +1,7 @@
 import React from "react";
+import { update, ref } from "firebase/database";
+import { db } from "../firebaseConfig";
+
 import {
   View,
   Text,
@@ -17,38 +20,80 @@ const ResumenScreen = ({
   if (!paciente) {
     return (
       <View style={styles.container}>
-        <Text style={styles.titulo}>No hay paciente seleccionado</Text>
+        <Text style={styles.titulo}>
+          No hay paciente seleccionado
+        </Text>
         <Button
           title="Volver"
-          onPress={() => setScreen("Lista de Pacientes")}
+          onPress={() =>
+            setScreen("Lista de Pacientes")
+          }
         />
       </View>
     );
   }
 
-  const pruebas = Array.isArray(paciente.pruebas)
+  const pruebas = Array.isArray(
+    paciente.pruebas
+  )
     ? paciente.pruebas
     : [];
 
   const puntajeTotal = pruebas.reduce(
-    (total, ev) => total + (ev.puntaje || 0),
+    (total, ev) =>
+      total + (ev.puntaje || 0),
     0
   );
 
-  // 🔥 GUARDAR PACIENTE EN LISTA
+  const cambiarEstado = async (
+    nuevoEstado
+  ) => {
+    try {
+      if (!paciente?.id) {
+        Alert.alert(
+          "Error",
+          "No se encontró el ID de la cita"
+        );
+        return;
+      }
+
+      await update(
+        ref(db, `citas/${paciente.id}`),
+        {
+          status: nuevoEstado,
+        }
+      );
+
+      paciente.status = nuevoEstado;
+
+      Alert.alert(
+        "Estado actualizado",
+        `La cita ahora está: ${nuevoEstado}`
+      );
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "No se pudo actualizar el estado"
+      );
+      console.log(error);
+    }
+  };
+
   const guardarPaciente = () => {
     setPacientes((prev) => {
       const existe = prev.find(
         (p) =>
           p.nombre === paciente.nombre &&
-          p.telefono === paciente.telefono &&
+          p.telefono ===
+            paciente.telefono &&
           p.fecha === paciente.fecha
       );
 
       if (existe) {
         return prev.map((p) =>
           p.nombre === paciente.nombre &&
-          p.telefono === paciente.telefono &&
+          p.telefono ===
+            paciente.telefono &&
           p.fecha === paciente.fecha
             ? paciente
             : p
@@ -58,23 +103,44 @@ const ResumenScreen = ({
       }
     });
 
-    Alert.alert("Éxito", "Paciente guardado correctamente");
+    Alert.alert(
+      "Éxito",
+      "Paciente guardado correctamente"
+    );
+
     setScreen("Lista de Pacientes");
   };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.titulo}>Resumen Clínico</Text>
+      <Text style={styles.titulo}>
+        Resumen Clínico
+      </Text>
 
       {/* DATOS PACIENTE */}
       <View style={styles.cardPaciente}>
-        <Text style={styles.nombre}>{paciente.nombre}</Text>
-        <Text>Teléfono: {paciente.telefono}</Text>
+        <Text style={styles.nombre}>
+          {paciente.nombre}
+        </Text>
+
+        <Text>
+          Teléfono:{" "}
+          {paciente.telefono}
+        </Text>
+
         <Text>
           Fecha:{" "}
           {paciente.fecha
-            ? new Date(paciente.fecha).toLocaleDateString()
+            ? new Date(
+                paciente.fecha
+              ).toLocaleDateString()
             : ""}
+        </Text>
+
+        <Text>
+          Estado actual:{" "}
+          {paciente.status ||
+            "Agenda"}
         </Text>
       </View>
 
@@ -84,69 +150,157 @@ const ResumenScreen = ({
         </Text>
       ) : (
         <>
-          <Text style={styles.subtitulo}>Pruebas realizadas</Text>
+          <Text
+            style={styles.subtitulo}
+          >
+            Pruebas realizadas
+          </Text>
 
-          {pruebas.map((item, index) => (
-            <View key={index} style={styles.cardEvaluacion}>
-              <Text style={styles.tipo}>{item.tipo}</Text>
-              <Text>Fecha: {item.fecha}</Text>
+          {pruebas.map(
+            (item, index) => (
+              <View
+                key={index}
+                style={
+                  styles.cardEvaluacion
+                }
+              >
+                <Text
+                  style={styles.tipo}
+                >
+                  {item.tipo}
+                </Text>
 
-              {/* 🔹 MOSTRAR PUNTAJE SOLO SI EXISTE */}
-              {item.puntaje !== undefined && (
-                <Text>Puntaje: {item.puntaje}</Text>
-              )}
+                <Text>
+                  Fecha: {item.fecha}
+                </Text>
 
-              {/* 🔹 SI ES OARS, MOSTRAR FORMULARIO COMPLETO */}
-              {item.tipo === "OARS" &&
-                item.detalle?.respuestas && (
-                  <View style={styles.detalleBox}>
-                    <Text style={styles.detalleTitulo}>
-                      Respuestas del Formulario:
+                {item.puntaje !==
+                  undefined && (
+                  <Text>
+                    Puntaje:{" "}
+                    {item.puntaje}
+                  </Text>
+                )}
+
+                {item.tipo ===
+                  "OARS" && (
+                  <View
+                    style={
+                      styles.detalleBox
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.detalleTitulo
+                      }
+                    >
+                      Respuestas del
+                      Formulario:
                     </Text>
 
-                    {Object.entries(
-                      item.detalle.respuestas
-                    ).map(([key, value], i) => (
+                    {item.detalle
+                      ?.respuestas ? (
+                      Object.entries(
+                        item.detalle
+                          .respuestas
+                      ).map(
+                        (
+                          [
+                            key,
+                            value,
+                          ],
+                          i
+                        ) => (
+                          <Text
+                            key={i}
+                            style={
+                              styles.detalleItem
+                            }
+                          >
+                            • {key}:{" "}
+                            {Array.isArray(
+                              value
+                            )
+                              ? value.join(
+                                  ", "
+                                )
+                              : String(
+                                  value ||
+                                    "No especificado"
+                                )}
+                          </Text>
+                        )
+                      )
+                    ) : (
                       <Text
-                        key={i}
-                        style={styles.detalleItem}
+                        style={
+                          styles.detalleItem
+                        }
                       >
-                        • {key}:{" "}
-                        {Array.isArray(value)
-                          ? value.join(", ")
-                          : value || "No especificado"}
+                        No se
+                        encontraron
+                        respuestas
                       </Text>
-                    ))}
+                    )}
                   </View>
                 )}
 
-              {/* 🔹 OTRAS PRUEBAS CON DETALLE COMO ARRAY */}
-              {Array.isArray(item.detalle) &&
-                item.detalle.length > 0 && (
-                  <View style={styles.detalleBox}>
-                    <Text style={styles.detalleTitulo}>
-                      Detalle:
-                    </Text>
-                    {item.detalle.map((d, i) => (
+                {Array.isArray(
+                  item.detalle
+                ) &&
+                  item.detalle
+                    .length > 0 && (
+                    <View
+                      style={
+                        styles.detalleBox
+                      }
+                    >
                       <Text
-                        key={i}
-                        style={styles.detalleItem}
+                        style={
+                          styles.detalleTitulo
+                        }
                       >
-                        • {d}
+                        Detalle:
                       </Text>
-                    ))}
-                  </View>
-                )}
-            </View>
-          ))}
 
-          {/* 🔹 MOSTRAR TOTAL SOLO SI HAY PUNTAJE */}
+                      {item.detalle.map(
+                        (
+                          d,
+                          i
+                        ) => (
+                          <Text
+                            key={i}
+                            style={
+                              styles.detalleItem
+                            }
+                          >
+                            • {d}
+                          </Text>
+                        )
+                      )}
+                    </View>
+                  )}
+              </View>
+            )
+          )}
+
           {puntajeTotal > 0 && (
-            <View style={styles.totalBox}>
-              <Text style={styles.totalTexto}>
+            <View
+              style={styles.totalBox}
+            >
+              <Text
+                style={
+                  styles.totalTexto
+                }
+              >
                 Puntaje Total
               </Text>
-              <Text style={styles.totalNumero}>
+
+              <Text
+                style={
+                  styles.totalNumero
+                }
+              >
                 {puntajeTotal}
               </Text>
             </View>
@@ -154,21 +308,54 @@ const ResumenScreen = ({
         </>
       )}
 
-      <View style={{ marginVertical: 20 }}>
+      <View
+        style={{ marginVertical: 20 }}
+      >
         <Button
           title="Guardar Paciente"
           onPress={guardarPaciente}
         />
 
-        <View style={{ height: 10 }} />
+        <View
+          style={{ height: 10 }}
+        />
 
         <Button
           title="Volver sin guardar"
           onPress={() =>
-            setScreen("Lista de Pacientes")
+            setScreen(
+              "Lista de Pacientes"
+            )
           }
         />
       </View>
+
+      <Button
+        title="Agenda"
+        onPress={() =>
+          cambiarEstado("Agenda")
+        }
+      />
+
+      <View style={{ height: 10 }} />
+
+      <Button
+        title="En curso"
+        onPress={() =>
+          cambiarEstado("En curso")
+        }
+      />
+
+      <View style={{ height: 10 }} />
+
+      <Button
+        title="Concluir"
+        onPress={() =>
+          cambiarEstado(
+            "Concluida"
+          )
+        }
+      />
     </ScrollView>
   );
 };
