@@ -125,6 +125,8 @@ export default function OARSScreen({
       fecha: new Date().toLocaleDateString(),
       detalle: {
         respuestas: form,
+         nombre: pacienteActual.nombre,
+         evaluador: pacienteActual.medico || "Médico asignado",
       },
     };
 
@@ -147,15 +149,10 @@ export default function OARSScreen({
         Formulario OARS
       </Text>
 
-      
+      <Text style={{ marginBottom: 6 }}>
+      Paciente: {pacienteActual?.nombre || "No seleccionado"}
+     </Text>
 
-
-      {/* Datos básicos */}
-      <Text>Nombre:</Text>
-      <TextInput
-        style={styles.input}
-        onChangeText={(v) => setField("nombre", v)}
-      />
 
       <Text>Edad:</Text>
       <TextInput
@@ -485,13 +482,7 @@ export default function OARSScreen({
         />
       ))}
 
-      <Text style={styles.q}>Evaluador:</Text>
-      <TextInput
-        style={styles.input}
-        onChangeText={(v) =>
-          setField("evaluador", v)
-        }
-      />
+      
       <View style={{ height: 30 }} />
 
       <Button

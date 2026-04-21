@@ -30,6 +30,7 @@ export default function RegisterPatientScreen({
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const [medicos, setMedicos] = useState([]);
+  const [citasExistentes, setCitasExistentes] = useState([]);
 
   const formInicial = {
     nombre: "",
@@ -57,21 +58,27 @@ export default function RegisterPatientScreen({
 
   const [form, setForm] = useState(formInicial);
 
-  useEffect(() => {
+ useEffect(() => {
   cargarUsuarios();
   cargarUsuarioSeleccionado();
   cargarMedicos();
+  cargarCitasExistentes();
 
   if (pacienteActual) {
-    setForm({
-      ...formInicial,
+    setForm((prev) => ({
+      ...prev,
       ...pacienteActual,
+      medicoId: pacienteActual.medicoId || "",
+      medicoNombre: pacienteActual.medicoNombre || "",
       evaluaciones:
         pacienteActual.evaluaciones ||
         formInicial.evaluaciones,
-    });
+    }));
   }
-}, []);
+}, [pacienteActual]);
+
+
+
   const cargarUsuarios = () => {
     const usuariosRef = ref(db, "usuarios");
 
@@ -120,6 +127,25 @@ export default function RegisterPatientScreen({
     });
   };
 
+    const cargarCitasExistentes = () => {
+    const citasRef = ref(db, "citas");
+
+    onValue(citasRef, (snapshot) => {
+      const data = snapshot.val();
+
+      if (data) {
+        const lista = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+
+        setCitasExistentes(lista);
+      } else {
+        setCitasExistentes([]);
+      }
+    });
+  };
+
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || form.fecha;
     setShowDatePicker(Platform.OS === "ios");
@@ -144,53 +170,82 @@ export default function RegisterPatientScreen({
       status: "Agenda",
     };
 
-  push(ref(db, "citas"), nuevaCita);
+    push(ref(db, "citas"), nuevaCita);
 
-  setPacienteActual(nuevaCita);
-  setScreen("Resumen");
-};
+    setPacienteActual(nuevaCita);
+    setScreen("Resumen");
+  };
 
   const handleSubmit = () => {
-  if (!form.nombre || !form.telefono) {
-    Alert.alert("Error", "Debes seleccionar un usuario");
+    if (!form.nombre || !form.telefono) {
+      Alert.alert("Error", "Debes seleccionar un usuario");
+      return;
+    }
+
+    const citaDuplicada = citasExistentes.find(
+    (cita) =>
+      cita.medicoId === form.medicoId &&
+      cita.hora === form.hora &&
+      new Date(cita.fecha).toDateString() ===
+        new Date(form.fecha).toDateString()
+  );
+
+  if (citaDuplicada) {
+    Alert.alert(
+      "Horario ocupado",
+      "Este médico ya tiene una cita en esa fecha y hora"
+    );
     return;
   }
 
-  const nuevaCita = {
-    pacienteId: form.telefono,
-    nombre: form.nombre,
-    contacto: form.contacto,
-    email: form.email,
-    telefono: form.telefono,
-    medicoId: form.medicoId,
-    medicoNombre: form.medicoNombre,
-    fecha:
-      form.fecha instanceof Date
-        ? form.fecha.toISOString()
-        : form.fecha,
-    hora: form.hora,
-    motivo: form.motivo,
-    sintomas: form.sintomas,
-    evaluaciones: form.evaluaciones,
-    tipoCita: form.tipoCita,
-    status: "Agenda",
+    const historialPaciente = citasExistentes.filter(
+      (cita) => cita.telefono === form.telefono
+    );
 
-    
-    pruebas: pacienteActual?.pruebas || [],
+    const tipoCita =
+      historialPaciente.length > 0
+        ? "Seguimiento"
+        : "Primera vez";
+
+    const nuevaCita = {
+      pacienteId: form.telefono,
+      nombre: form.nombre,
+      contacto: form.contacto,
+      email: form.email,
+      telefono: form.telefono,
+      medicoId: form.medicoId,
+      medicoNombre: form.medicoNombre,
+      fecha:
+        form.fecha instanceof Date
+          ? form.fecha.toISOString()
+          : form.fecha,
+      hora: form.hora,
+      motivo: form.motivo,
+      sintomas: form.sintomas,
+      evaluaciones: form.evaluaciones,
+
+      tipoCita: tipoCita,
+
+      status: "Agenda",
+      pruebas: pacienteActual?.pruebas || [],
+    };
+
+    // guardar en firebase
+    push(ref(db, "citas"), nuevaCita);
+
+    setPacienteActual((prev) => ({
+      ...prev,
+      ...nuevaCita,
+      pruebas: prev?.pruebas || [],
+    }));
+
+    Alert.alert(
+      "Cita registrada",
+      `Tipo de cita: ${tipoCita}`
+    );
+
+    setScreen("Resumen");
   };
-
-  // guardar en firebase
-  push(ref(db, "citas"), nuevaCita);
-
- 
-  setPacienteActual((prev) => ({
-    ...prev,
-    ...nuevaCita,
-    pruebas: prev?.pruebas || [],
-  }));
-
-  setScreen("Resumen");
-};
 
   
 
@@ -199,15 +254,24 @@ export default function RegisterPatientScreen({
     setScreen(screenName);
   };
 
+  let dbLocal = null;
+
   const cargarMedicos = async () => {
-  const dbLocal = await SQLite.openDatabaseAsync("hospital.db");
+    try {
+      if (!dbLocal) {
+        dbLocal = await SQLite.openDatabaseAsync("hospital.db");
+      }
 
-  const lista = await dbLocal.getAllAsync(
-    "SELECT * FROM personal"
-  );
+      const lista = await dbLocal.getAllAsync(
+        "SELECT * FROM personal"
+      );
 
-  setMedicos(lista);
-};
+      setMedicos(lista);
+    } catch (error) {
+      console.log("Error al cargar médicos:", error);
+      setMedicos([]);
+    }
+  };
 
   return (
 
