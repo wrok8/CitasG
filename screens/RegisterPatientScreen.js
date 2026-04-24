@@ -11,7 +11,7 @@ import {
   Alert,
 } from "react-native";
 
-import { ref, onValue, push } from "firebase/database";
+import { ref, onValue, push, update } from "firebase/database";
 import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -156,7 +156,7 @@ export default function RegisterPatientScreen({
     return new Date(date).toLocaleDateString();
   };
 
-  const guardarCita = () => {
+  const guardarCita = async () => {
   const nuevaCita = {
       pacienteId: form.telefono,
       nombre: form.nombre,
@@ -170,82 +170,65 @@ export default function RegisterPatientScreen({
       status: "Agenda",
     };
 
-    push(ref(db, "citas"), nuevaCita);
+    const nuevaRef = push(ref(db, "citas"));
+    const citaId = nuevaRef.key;
+
+    await update(nuevaRef, nuevaCita);
+
+    setPacienteActual({
+      id: citaId,
+      ...nuevaCita,
+    });
 
     setPacienteActual(nuevaCita);
     setScreen("Resumen");
   };
 
-  const handleSubmit = () => {
-    if (!form.nombre || !form.telefono) {
-      Alert.alert("Error", "Debes seleccionar un usuario");
-      return;
-    }
-
-    const citaDuplicada = citasExistentes.find(
-    (cita) =>
-      cita.medicoId === form.medicoId &&
-      cita.hora === form.hora &&
-      new Date(cita.fecha).toDateString() ===
-        new Date(form.fecha).toDateString()
-  );
-
-  if (citaDuplicada) {
-    Alert.alert(
-      "Horario ocupado",
-      "Este médico ya tiene una cita en esa fecha y hora"
-    );
+  const handleSubmit = async () => {
+  if (!form.nombre || !form.telefono) {
+    Alert.alert("Error", "Debes seleccionar un usuario");
     return;
   }
 
-    const historialPaciente = citasExistentes.filter(
-      (cita) => cita.telefono === form.telefono
-    );
-
-    const tipoCita =
-      historialPaciente.length > 0
-        ? "Seguimiento"
-        : "Primera vez";
-
-    const nuevaCita = {
-      pacienteId: form.telefono,
-      nombre: form.nombre,
-      contacto: form.contacto,
-      email: form.email,
-      telefono: form.telefono,
-      medicoId: form.medicoId,
-      medicoNombre: form.medicoNombre,
-      fecha:
-        form.fecha instanceof Date
-          ? form.fecha.toISOString()
-          : form.fecha,
-      hora: form.hora,
-      motivo: form.motivo,
-      sintomas: form.sintomas,
-      evaluaciones: form.evaluaciones,
-
-      tipoCita: tipoCita,
-
-      status: "Agenda",
-      pruebas: pacienteActual?.pruebas || [],
-    };
-
-    // guardar en firebase
-    push(ref(db, "citas"), nuevaCita);
-
-    setPacienteActual((prev) => ({
-      ...prev,
-      ...nuevaCita,
-      pruebas: prev?.pruebas || [],
-    }));
-
-    Alert.alert(
-      "Cita registrada",
-      `Tipo de cita: ${tipoCita}`
-    );
-
-    setScreen("Resumen");
+  const nuevaCita = {
+    pacienteId: form.telefono,
+    nombre: form.nombre,
+    contacto: form.contacto,
+    email: form.email,
+    telefono: form.telefono,
+    medicoId: form.medicoId,
+    medicoNombre: form.medicoNombre,
+    fecha:
+      form.fecha instanceof Date
+        ? form.fecha.toISOString()
+        : form.fecha,
+    hora: form.hora,
+    motivo: form.motivo,
+    sintomas: form.sintomas,
+    evaluaciones: form.evaluaciones,
+    tipoCita: "Primera vez",
+    status: "Agenda",
+    pruebas: [],
+    signosVitales: [],
   };
+
+  try {
+    const nuevaRef = push(ref(db, "citas"));
+    const citaId = nuevaRef.key;
+
+    await update(nuevaRef, nuevaCita);
+
+    setPacienteActual({
+      id: citaId,
+      ...nuevaCita,
+    });
+
+    setScreen("Signos Vitales");
+  } catch (error) {
+    console.log(error);
+    Alert.alert("Error", "No se pudo guardar la cita");
+  }
+};
 
   
 

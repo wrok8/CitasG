@@ -1,62 +1,39 @@
+// screens/ResumenScreen.js
 import React from "react";
-import { update, ref } from "firebase/database";
-import { db } from "../firebaseConfig";
-
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  Button,
+  TouchableOpacity,
   Alert,
 } from "react-native";
+import { update, ref } from "firebase/database";
+import { db } from "../firebaseConfig";
 
-const ResumenScreen = ({
+export default function ResumenScreen({
   paciente,
   setScreen,
-  pacientes,
-  setPacientes,
-}) => {
+}) {
   if (!paciente) {
     return (
       <View style={styles.container}>
-        <Text style={styles.titulo}>
-          No hay paciente seleccionado
-        </Text>
-        <Button
-          title="Volver"
-          onPress={() =>
-            setScreen("Lista de Pacientes")
-          }
-        />
+        <Text>No hay paciente</Text>
       </View>
     );
   }
 
-  const pruebas = Array.isArray(
-    paciente.pruebas
-  )
-    ? paciente.pruebas
-    : [];
+  const pruebas = paciente.pruebas || [];
+  const signos =
+    paciente.signosVitales || [];
 
-  const puntajeTotal = pruebas.reduce(
-    (total, ev) =>
-      total + (ev.puntaje || 0),
-    0
-  );
+  const ultimaMedicion =
+    signos[0] || null;
 
   const cambiarEstado = async (
     nuevoEstado
   ) => {
     try {
-      if (!paciente?.id) {
-        Alert.alert(
-          "Error",
-          "No se encontró el ID de la cita"
-        );
-        return;
-      }
-
       await update(
         ref(db, `citas/${paciente.id}`),
         {
@@ -64,51 +41,16 @@ const ResumenScreen = ({
         }
       );
 
-      paciente.status = nuevoEstado;
-
       Alert.alert(
         "Estado actualizado",
-        `La cita ahora está: ${nuevoEstado}`
+        nuevoEstado
       );
     } catch (error) {
       Alert.alert(
         "Error",
-        "No se pudo actualizar el estado"
+        "No se pudo actualizar"
       );
-      console.log(error);
     }
-  };
-
-  const guardarPaciente = () => {
-    setPacientes((prev) => {
-      const existe = prev.find(
-        (p) =>
-          p.nombre === paciente.nombre &&
-          p.telefono ===
-            paciente.telefono &&
-          p.fecha === paciente.fecha
-      );
-
-      if (existe) {
-        return prev.map((p) =>
-          p.nombre === paciente.nombre &&
-          p.telefono ===
-            paciente.telefono &&
-          p.fecha === paciente.fecha
-            ? paciente
-            : p
-        );
-      } else {
-        return [...prev, paciente];
-      }
-    });
-
-    Alert.alert(
-      "Éxito",
-      "Paciente guardado correctamente"
-    );
-
-    setScreen("Lista de Pacientes");
   };
 
   return (
@@ -117,250 +59,133 @@ const ResumenScreen = ({
         Resumen Clínico
       </Text>
 
-      {/* DATOS PACIENTE */}
-      <View style={styles.cardPaciente}>
+      <View style={styles.card}>
         <Text style={styles.nombre}>
           {paciente.nombre}
         </Text>
 
         <Text>
-          Teléfono:{" "}
-          {paciente.telefono}
+          📅 Fecha:{" "}
+          {new Date(
+            paciente.fecha
+          ).toLocaleDateString()}
         </Text>
 
         <Text>
-          Fecha:{" "}
-          {paciente.fecha
-            ? new Date(
-                paciente.fecha
-              ).toLocaleDateString()
-            : ""}
+          📌 Estado:{" "}
+          {paciente.status}
         </Text>
 
         <Text>
-          Estado actual:{" "}
-          {paciente.status ||
-            "Agenda"}
+          🩺 Médico:{" "}
+          {paciente.medicoNombre}
+        </Text>
+
+        <Text>
+          🤒 Síntomas:{" "}
+          {paciente.sintomas}
         </Text>
       </View>
 
-      {pruebas.length === 0 ? (
-        <Text style={styles.vacio}>
-          No hay pruebas registradas
-        </Text>
-      ) : (
-        <>
-          <Text
-            style={styles.subtitulo}
-          >
-            Pruebas realizadas
+      {ultimaMedicion && (
+        <View style={styles.card}>
+          <Text style={styles.subtitulo}>
+            Últimos Signos Vitales
           </Text>
 
-          {pruebas.map(
-            (item, index) => (
-              <View
-                key={index}
-                style={
-                  styles.cardEvaluacion
-                }
-              >
-                <Text
-                  style={styles.tipo}
-                >
-                  {item.tipo}
-                </Text>
+          <Text>
+            ❤️ FC: {ultimaMedicion.bpm} BPM
+          </Text>
 
-                <Text>
-                  Fecha: {item.fecha}
-                </Text>
+          <Text>
+            🌡️ Temp:{" "}
+            {ultimaMedicion.temp}°C
+          </Text>
 
-                {item.puntaje !==
-                  undefined && (
-                  <Text>
-                    Puntaje:{" "}
-                    {item.puntaje}
-                  </Text>
-                )}
-
-                {item.tipo ===
-                  "OARS" && (
-                  <View
-                    style={
-                      styles.detalleBox
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.detalleTitulo
-                      }
-                    >
-                      Respuestas del
-                      Formulario:
-                    </Text>
-
-                    {item.detalle
-                      ?.respuestas ? (
-                      Object.entries(
-                        item.detalle
-                          .respuestas
-                      ).map(
-                        (
-                          [
-                            key,
-                            value,
-                          ],
-                          i
-                        ) => (
-                          <Text
-                            key={i}
-                            style={
-                              styles.detalleItem
-                            }
-                          >
-                            • {key}:{" "}
-                            {Array.isArray(
-                              value
-                            )
-                              ? value.join(
-                                  ", "
-                                )
-                              : String(
-                                  value ||
-                                    "No especificado"
-                                )}
-                          </Text>
-                        )
-                      )
-                    ) : (
-                      <Text
-                        style={
-                          styles.detalleItem
-                        }
-                      >
-                        No se
-                        encontraron
-                        respuestas
-                      </Text>
-                    )}
-                  </View>
-                )}
-
-                {Array.isArray(
-                  item.detalle
-                ) &&
-                  item.detalle
-                    .length > 0 && (
-                    <View
-                      style={
-                        styles.detalleBox
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.detalleTitulo
-                        }
-                      >
-                        Detalle:
-                      </Text>
-
-                      {item.detalle.map(
-                        (
-                          d,
-                          i
-                        ) => (
-                          <Text
-                            key={i}
-                            style={
-                              styles.detalleItem
-                            }
-                          >
-                            • {d}
-                          </Text>
-                        )
-                      )}
-                    </View>
-                  )}
-              </View>
-            )
-          )}
-
-          {puntajeTotal > 0 && (
-            <View
-              style={styles.totalBox}
-            >
-              <Text
-                style={
-                  styles.totalTexto
-                }
-              >
-                Puntaje Total
-              </Text>
-
-              <Text
-                style={
-                  styles.totalNumero
-                }
-              >
-                {puntajeTotal}
-              </Text>
-            </View>
-          )}
-        </>
+          <Text>
+            💧 SpO₂:{" "}
+            {ultimaMedicion.spo2}%
+          </Text>
+        </View>
       )}
 
-      <View
-        style={{ marginVertical: 20 }}
-      >
-        <Button
-          title="Guardar Paciente"
-          onPress={guardarPaciente}
-        />
+      <View style={styles.card}>
+        <Text style={styles.subtitulo}>
+          Evaluaciones
+        </Text>
 
-        <View
-          style={{ height: 10 }}
-        />
-
-        <Button
-          title="Volver sin guardar"
-          onPress={() =>
-            setScreen(
-              "Lista de Pacientes"
-            )
-          }
-        />
+        {pruebas.length === 0 ? (
+          <Text>
+            No hay pruebas
+          </Text>
+        ) : (
+          pruebas.map((p, index) => (
+            <View
+              key={index}
+              style={styles.prueba}
+            >
+              <Text>
+                📋 {p.tipo}
+              </Text>
+              <Text>
+                Puntaje:{" "}
+                {p.puntaje || 0}
+              </Text>
+            </View>
+          ))
+        )}
       </View>
 
-      <Button
-        title="Agenda"
+      <TouchableOpacity
+        style={styles.btnAgenda}
         onPress={() =>
           cambiarEstado("Agenda")
         }
-      />
+      >
+        <Text style={styles.btnText}>
+          Agenda
+        </Text>
+      </TouchableOpacity>
 
-      <View style={{ height: 10 }} />
-
-      <Button
-        title="En curso"
+      <TouchableOpacity
+        style={styles.btnCurso}
         onPress={() =>
           cambiarEstado("En curso")
         }
-      />
+      >
+        <Text style={styles.btnText}>
+          En Curso
+        </Text>
+      </TouchableOpacity>
 
-      <View style={{ height: 10 }} />
-
-      <Button
-        title="Concluir"
+      <TouchableOpacity
+        style={styles.btnConcluir}
         onPress={() =>
           cambiarEstado(
             "Concluida"
           )
         }
-      />
+      >
+        <Text style={styles.btnText}>
+          Concluir
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.btnVolver}
+        onPress={() =>
+          setScreen(
+            "Lista de Pacientes"
+          )
+        }
+      >
+        <Text style={styles.btnText}>
+          Volver
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
-};
-
-export default ResumenScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -369,71 +194,56 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f8",
   },
   titulo: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
     textAlign: "center",
+    marginBottom: 20,
   },
-  cardPaciente: {
+  card: {
     backgroundColor: "white",
     padding: 15,
     borderRadius: 10,
-    marginBottom: 20,
-    elevation: 3,
+    marginBottom: 15,
   },
   nombre: {
     fontSize: 20,
     fontWeight: "bold",
   },
   subtitulo: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  cardEvaluacion: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    elevation: 2,
-  },
-  tipo: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 10,
   },
-  detalleBox: {
-    marginTop: 10,
-    backgroundColor: "#eef2f5",
-    padding: 10,
-    borderRadius: 8,
+  prueba: {
+    marginBottom: 10,
   },
-  detalleTitulo: {
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  detalleItem: {
-    fontSize: 14,
-  },
-  totalBox: {
+  btnAgenda: {
     backgroundColor: "#1565C0",
-    padding: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 20,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
   },
-  totalTexto: {
+  btnCurso: {
+    backgroundColor: "#FB8C00",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  btnConcluir: {
+    backgroundColor: "#2E7D32",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  btnVolver: {
+    backgroundColor: "#757575",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 30,
+  },
+  btnText: {
     color: "white",
-    fontSize: 16,
-  },
-  totalNumero: {
-    color: "white",
-    fontSize: 40,
-    fontWeight: "bold",
-  },
-  vacio: {
     textAlign: "center",
-    marginVertical: 40,
-    color: "#7f8c8d",
+    fontWeight: "bold",
   },
 });

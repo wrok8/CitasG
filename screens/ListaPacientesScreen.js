@@ -1,3 +1,4 @@
+// screens/ListaPacientesScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -18,47 +19,19 @@ import {
 import { db } from "../firebaseConfig";
 
 export default function ListaPacientesScreen({
-  pacientes,
   setScreen,
   setPacienteActual,
+  pacientes,
   setPacientes,
 }) {
   const [modalVisible, setModalVisible] = useState(false);
   const [pacienteSeleccionado, setPacienteSeleccionado] =
     useState(null);
 
-  const getPacienteKey = (paciente) => {
-    return paciente.id || `${paciente.nombre}-${paciente.telefono}-${paciente.fecha}`;
-  };
-
-  const abrirModal = (paciente) => {
-    setPacienteSeleccionado(paciente);
-    setModalVisible(true);
-  };
-
-  // ELIMINAR CITA
-  const eliminarPaciente = () => {
-    if (!pacienteSeleccionado?.id) return;
-
-    remove(ref(db, `citas/${pacienteSeleccionado.id}`));
-    setModalVisible(false);
-  };
-
-  // CANCELAR CITA
-  const cancelarCita = () => {
-    if (!pacienteSeleccionado?.id) return;
-
-    update(ref(db, `citas/${pacienteSeleccionado.id}`), {
-      status: "Cancelada",
-    });
-
-    setModalVisible(false);
-  };
-
   useEffect(() => {
-    const pacientesRef = ref(db, "citas");
+    const citasRef = ref(db, "citas");
 
-    const unsubscribe = onValue(pacientesRef, (snapshot) => {
+    const unsubscribe = onValue(citasRef, (snapshot) => {
       const data = snapshot.val();
 
       if (data) {
@@ -66,6 +39,11 @@ export default function ListaPacientesScreen({
           id: key,
           ...data[key],
         }));
+
+        lista.sort(
+          (a, b) =>
+            new Date(b.fecha) - new Date(a.fecha)
+        );
 
         setPacientes(lista);
       } else {
@@ -76,69 +54,129 @@ export default function ListaPacientesScreen({
     return () => unsubscribe();
   }, []);
 
+  const abrirModal = (paciente) => {
+    setPacienteSeleccionado(paciente);
+    setModalVisible(true);
+  };
+
+  const eliminarPaciente = async () => {
+    if (!pacienteSeleccionado?.id) return;
+
+    await remove(
+      ref(db, `citas/${pacienteSeleccionado.id}`)
+    );
+
+    setModalVisible(false);
+  };
+
+  const cancelarCita = async () => {
+    if (!pacienteSeleccionado?.id) return;
+
+    await update(
+      ref(db, `citas/${pacienteSeleccionado.id}`),
+      {
+        status: "Cancelada",
+      }
+    );
+
+    setModalVisible(false);
+  };
+
+  const renderItem = ({ item }) => {
+    const ultimaMedicion =
+      item.signosVitales?.[0] || null;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => abrirModal(item)}
+      >
+        <Text style={styles.nombre}>
+          {item.nombre}
+        </Text>
+
+        <Text>
+          📅 Fecha:{" "}
+          {item.fecha
+            ? new Date(
+                item.fecha
+              ).toLocaleDateString()
+            : "Sin fecha"}
+        </Text>
+
+        <Text>
+          🩺 Médico:{" "}
+          {item.medicoNombre ||
+            "No asignado"}
+        </Text>
+
+        <Text>
+          📌 Estado:{" "}
+          {item.status || "Agenda"}
+        </Text>
+
+        <Text numberOfLines={2}>
+          🤒 Síntomas:{" "}
+          {item.sintomas ||
+            "No especificados"}
+        </Text>
+
+        <Text style={styles.pruebas}>
+          📋 Pruebas:{" "}
+          {item.pruebas?.length || 0}
+        </Text>
+
+        <Text style={styles.pruebas}>
+          ❤️ Signos Vitales:{" "}
+          {item.signosVitales?.length || 0}
+        </Text>
+
+        {ultimaMedicion && (
+          <View style={styles.signosBox}>
+            <Text>
+              ❤️ {ultimaMedicion.bpm} BPM
+            </Text>
+            <Text>
+              🌡️ {ultimaMedicion.temp}°C
+            </Text>
+            <Text>
+              💧 {ultimaMedicion.spo2}%
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       {pacientes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            No hay pacientes guardados
+            No hay pacientes registrados
           </Text>
         </View>
       ) : (
         <FlatList
           data={pacientes}
-          keyExtractor={(item) => getPacienteKey(item)}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => abrirModal(item)}
-            >
-              <Text style={styles.title}>
-                {item.nombre}
-              </Text>
-
-              <Text>
-                Fecha:{" "}
-                {item.fecha
-                  ? new Date(item.fecha).toLocaleDateString()
-                  : "Sin fecha"}
-              </Text>
-
-              <Text>
-                Estado: {item.status || "Agenda"}
-              </Text>
-
-              <Text numberOfLines={1}>
-                Síntomas:{" "}
-                {item.sintomas || "No especificados"}
-              </Text>
-
-              <Text style={styles.pruebasText}>
-                Pruebas realizadas:{" "}
-                {item.pruebas?.length || 0}
-              </Text>
-            </TouchableOpacity>
-          )}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
         />
       )}
 
-      {/* MODAL */}
       <Modal
         transparent
         animationType="fade"
         visible={modalVisible}
-        onRequestClose={() =>
-          setModalVisible(false)
-        }
       >
         <View style={styles.overlay}>
-          <View style={styles.modalContainer}>
+          <View style={styles.modal}>
             <Text style={styles.modalTitle}>
               ¿Qué deseas hacer?
             </Text>
 
             <Pressable
-              style={styles.modalButton}
+              style={styles.btn}
               onPress={() => {
                 setPacienteActual(
                   pacienteSeleccionado
@@ -147,60 +185,79 @@ export default function ListaPacientesScreen({
                 setScreen("Resumen");
               }}
             >
-              <Text style={styles.modalButtonText}>
+              <Text style={styles.btnText}>
                 👁 Ver Resumen
               </Text>
             </Pressable>
 
             <Pressable
-              style={styles.modalButton}
+              style={styles.btn}
               onPress={() => {
                 setPacienteActual(
                   pacienteSeleccionado
                 );
                 setModalVisible(false);
-                setScreen("Agendar Cita");
+                setScreen(
+                  "Signos Vitales"
+                );
               }}
             >
-              <Text style={styles.modalButtonText}>
+              <Text style={styles.btnText}>
+                ❤️ Ver Signos Vitales
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.btn}
+              onPress={() => {
+                setPacienteActual(
+                  pacienteSeleccionado
+                );
+                setModalVisible(false);
+                setScreen(
+                  "Agendar Cita"
+                );
+              }}
+            >
+              <Text style={styles.btnText}>
                 ✏ Editar
               </Text>
             </Pressable>
 
             <Pressable
               style={[
-                styles.modalButton,
-                { backgroundColor: "#D32F2F" },
+                styles.btn,
+                styles.cancelar,
+              ]}
+              onPress={cancelarCita}
+            >
+              <Text style={styles.btnText}>
+                ❌ Cancelar
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.btn,
+                styles.eliminar,
               ]}
               onPress={eliminarPaciente}
             >
-              <Text style={styles.modalButtonText}>
+              <Text style={styles.btnText}>
                 🗑 Eliminar
               </Text>
             </Pressable>
 
             <Pressable
               style={[
-                styles.modalButton,
-                { backgroundColor: "#F57C00" },
-              ]}
-              onPress={cancelarCita}
-            >
-              <Text style={styles.modalButtonText}>
-                ❌ Cancelar Cita
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.modalButton,
-                { backgroundColor: "#9E9E9E" },
+                styles.btn,
+                styles.cerrar,
               ]}
               onPress={() =>
                 setModalVisible(false)
               }
             >
-              <Text style={styles.modalButtonText}>
+              <Text style={styles.btnText}>
                 Cerrar
               </Text>
             </Pressable>
@@ -214,68 +271,73 @@ export default function ListaPacientesScreen({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: "#BBDEFB",
-    padding: 15,
     margin: 10,
+    padding: 15,
     borderRadius: 12,
     elevation: 3,
   },
-
-  title: {
+  nombre: {
+    fontSize: 18,
     fontWeight: "bold",
-    fontSize: 16,
     color: "#0D47A1",
-    marginBottom: 5,
+    marginBottom: 8,
   },
-
-  pruebasText: {
+  pruebas: {
     marginTop: 5,
     fontWeight: "bold",
-    color: "#2E7D32",
   },
-
+  signosBox: {
+    marginTop: 10,
+    backgroundColor: "#E3F2FD",
+    padding: 10,
+    borderRadius: 8,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-
   emptyText: {
     fontSize: 16,
     color: "#777",
   },
-
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor:
+      "rgba(0,0,0,0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
-
-  modalContainer: {
+  modal: {
     width: "85%",
     backgroundColor: "white",
-    borderRadius: 15,
     padding: 20,
-    elevation: 10,
+    borderRadius: 15,
   },
-
   modalTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 15,
     textAlign: "center",
   },
-
-  modalButton: {
+  btn: {
     backgroundColor: "#1565C0",
     padding: 15,
     borderRadius: 10,
     marginVertical: 5,
   },
-
-  modalButtonText: {
+  btnText: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  cancelar: {
+    backgroundColor: "#F57C00",
+  },
+  eliminar: {
+    backgroundColor: "#D32F2F",
+  },
+  cerrar: {
+    backgroundColor: "#757575",
   },
 });
