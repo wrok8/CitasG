@@ -184,46 +184,52 @@ export default function RegisterPatientScreen({
     setScreen("Resumen");
   };
 
-  const handleSubmit = async () => {
+const guardarCitaYContinuar = async (pantallaDestino) => {
   if (!form.nombre || !form.telefono) {
     Alert.alert("Error", "Debes seleccionar un usuario");
     return;
   }
 
-  const nuevaCita = {
-    pacienteId: form.telefono,
-    nombre: form.nombre,
-    contacto: form.contacto,
-    email: form.email,
-    telefono: form.telefono,
-    medicoId: form.medicoId,
-    medicoNombre: form.medicoNombre,
-    fecha:
-      form.fecha instanceof Date
-        ? form.fecha.toISOString()
-        : form.fecha,
-    hora: form.hora,
-    motivo: form.motivo,
-    sintomas: form.sintomas,
-    evaluaciones: form.evaluaciones,
-    tipoCita: "Primera vez",
-    status: "Agenda",
-    pruebas: [],
-    signosVitales: [],
-  };
-
   try {
-    const nuevaRef = push(ref(db, "citas"));
-    const citaId = nuevaRef.key;
+    let citaId = pacienteActual?.id;
 
-    await update(nuevaRef, nuevaCita);
+    const datosCita = {
+      pacienteId: form.telefono,
+      nombre: form.nombre,
+      contacto: form.contacto,
+      email: form.email,
+      telefono: form.telefono,
+      medicoId: form.medicoId,
+      medicoNombre: form.medicoNombre,
+      fecha:
+        form.fecha instanceof Date
+          ? form.fecha.toISOString()
+          : form.fecha,
+      hora: form.hora,
+      motivo: form.motivo,
+      sintomas: form.sintomas,
+      evaluaciones: form.evaluaciones,
+      tipoCita: "Primera vez",
+      status: "Agenda",
+      pruebas: pacienteActual?.pruebas || [],
+      signosVitales: pacienteActual?.signosVitales || [],
+    };
+
+    if (!citaId) {
+      const nuevaRef = push(ref(db, "citas"));
+      citaId = nuevaRef.key;
+
+      await update(nuevaRef, datosCita);
+    } else {
+      await update(ref(db, `citas/${citaId}`), datosCita);
+    }
 
     setPacienteActual({
       id: citaId,
-      ...nuevaCita,
+      ...datosCita,
     });
 
-    setScreen("Signos Vitales");
+    setScreen(pantallaDestino);
   } catch (error) {
     console.log(error);
     Alert.alert("Error", "No se pudo guardar la cita");
@@ -232,10 +238,53 @@ export default function RegisterPatientScreen({
 
   
 
-  const handleNavigate = (screenName) => {
-    setPacienteActual(form);
+  const handleNavigate = async (screenName) => {
+  try {
+    let citaId = pacienteActual?.id;
+
+    const datosCita = {
+      pacienteId: form.telefono,
+      nombre: form.nombre,
+      contacto: form.contacto,
+      email: form.email,
+      telefono: form.telefono,
+      medicoId: form.medicoId,
+      medicoNombre: form.medicoNombre,
+      fecha:
+        form.fecha instanceof Date
+          ? form.fecha.toISOString()
+          : form.fecha,
+      hora: form.hora,
+      motivo: form.motivo,
+      sintomas: form.sintomas,
+      evaluaciones: form.evaluaciones,
+      tipoCita: "Primera vez",
+      status: "Agenda",
+      pruebas: pacienteActual?.pruebas || [],
+      signosVitales: pacienteActual?.signosVitales || [],
+    };
+
+    // Si aún no existe en Firebase, crear
+    if (!citaId) {
+      const nuevaRef = push(ref(db, "citas"));
+      citaId = nuevaRef.key;
+
+      await update(nuevaRef, datosCita);
+    } else {
+      await update(ref(db, `citas/${citaId}`), datosCita);
+    }
+
+    setPacienteActual({
+      id: citaId,
+      ...datosCita,
+    });
+
     setScreen(screenName);
-  };
+  } catch (error) {
+    console.log(error);
+    Alert.alert("Error", "No se pudo guardar la cita");
+  }
+};
 
   let dbLocal = null;
 
@@ -535,12 +584,21 @@ export default function RegisterPatientScreen({
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity
+       <TouchableOpacity
           style={styles.button}
-          onPress={handleSubmit}
+          onPress={() => guardarCitaYContinuar("Resumen")}
         >
           <Text style={styles.buttonText}>
-            VER RESUMEN
+            GUARDAR Y VER RESUMEN
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={() => guardarCitaYContinuar("Signos Vitales")}
+        >
+          <Text style={styles.buttonText}>
+            TOMAR SIGNOS VITALES
           </Text>
         </TouchableOpacity>
 

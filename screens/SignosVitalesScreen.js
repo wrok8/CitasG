@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Dimensions,S
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LineChart } from "react-native-chart-kit";
@@ -16,7 +16,8 @@ import { ref, update } from "firebase/database";
 import { db } from "../firebaseConfig";
 
 const SCREEN_W = Dimensions.get("window").width - 32;
-const STORAGE_KEY = "@signos_vitales_historial";
+const getStorageKey = () =>
+  `@signos_${pacienteActual?.id || "temp"}`;
 
 const RANGOS = {
   bpm: { min: 60, max: 100, label: "60–100 BPM" },
@@ -42,6 +43,11 @@ export default function SignosVitalesScreen({
   );
   const [accel, setAccel] = useState({ x: 0, y: 0, z: 0 });
   const [tab, setTab] = useState("monitor");
+  const [lecturaActual, setLecturaActual] = useState({
+  bpm: 0,
+  temp: 0,
+  spo2: 0,
+  });
 
   useEffect(() => {
     Accelerometer.setUpdateInterval(400);
@@ -54,10 +60,39 @@ export default function SignosVitalesScreen({
     return () => sub.remove();
   }, []);
 
+  useEffect(() => {
+  const intervalo = setInterval(() => {
+    const magnitud = Math.sqrt(
+      accel.x ** 2 + accel.y ** 2 + accel.z ** 2
+    );
+
+    const actividad = Math.min(magnitud / 2, 1);
+
+    const bpm = rand(60 + actividad * 10, 95 + actividad * 10);
+    const temp = rand(36.0, 37.4, 1);
+    const spo2 = rand(95, 100);
+
+    setLecturaActual({
+      bpm,
+      temp,
+      spo2,
+    });
+  }, 1000);
+
+  return () => clearInterval(intervalo);
+  }, [accel]);
+
   const cargarHistorial = async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) setMediciones(JSON.parse(raw));
+      const raw = await AsyncStorage.getItem(
+        getStorageKey()
+      );
+
+      if (raw) {
+        setMediciones(JSON.parse(raw));
+      } else if (pacienteActual?.signosVitales) {
+        setMediciones(pacienteActual.signosVitales);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -65,7 +100,10 @@ export default function SignosVitalesScreen({
 
   const guardarHistorial = async (lista) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+      await AsyncStorage.setItem(
+        getStorageKey(),
+        JSON.stringify(lista)
+      );
     } catch (error) {
       console.log(error);
     }
@@ -78,13 +116,7 @@ export default function SignosVitalesScreen({
 
     const actividad = Math.min(magnitud / 2, 1);
 
-    const bpm = rand(55 + actividad * 15, 105 + actividad * 10);
-    const temp = rand(
-      35.4 + actividad * 0.3,
-      38.2 + actividad * 0.3,
-      1
-    );
-    const spo2 = rand(91, 100);
+    const { bpm, temp, spo2 } = lecturaActual;
 
     const ahora = new Date();
 
@@ -193,7 +225,7 @@ export default function SignosVitalesScreen({
               <Badge
                 icon="❤️"
                 label="Frec. Cardíaca"
-                value={ultima?.bpm ?? "--"}
+                value={lecturaActual.bpm}
                 unit="BPM"
                 color="#E53935"
                 ok={ultima ? enRango(ultima.bpm, "bpm") : true}
@@ -201,7 +233,7 @@ export default function SignosVitalesScreen({
               <Badge
                 icon="🌡️"
                 label="Temperatura"
-                value={ultima?.temp ?? "--"}
+                value={lecturaActual.spo2}
                 unit="°C"
                 color="#FB8C00"
                 ok={ultima ? enRango(ultima.temp, "temp") : true}
@@ -209,7 +241,7 @@ export default function SignosVitalesScreen({
               <Badge
                 icon="💧"
                 label="SpO₂"
-                value={ultima?.spo2 ?? "--"}
+                value={lecturaActual.spo2}
                 unit="%"
                 color="#1E88E5"
                 ok={ultima ? enRango(ultima.spo2, "spo2") : true}
@@ -228,7 +260,14 @@ export default function SignosVitalesScreen({
 
           <TouchableOpacity
             style={s.btnResumen}
-            onPress={() => setScreen("Resumen")}
+           onPress={() => {
+            setPacienteActual({
+              ...pacienteActual,
+              signosVitales: mediciones,
+            });
+
+            setScreen("Resumen");
+          }}
           >
             <Text style={s.btnMedirTxt}>
               📋 Ir al Resumen
