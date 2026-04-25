@@ -24,7 +24,7 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>3. SPPB</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => setScreen("Frail")}>
         <Text style={styles.buttonText}>4. FRAIL</Text>
       </TouchableOpacity>
 
@@ -42,13 +42,13 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>6. Escala Norton</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>7. Audicion</Text>
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={() => setScreen("Audicion")}>
+      <Text style={styles.buttonText}>7. Audicion</Text>
+    </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={() => setScreen("AgudezaVisual")}>
-  <Text style={styles.buttonText}>8. Visión</Text>
-</TouchableOpacity>
+      <Text style={styles.buttonText}>8. Visión</Text>
+    </TouchableOpacity>
 
       
     </View>

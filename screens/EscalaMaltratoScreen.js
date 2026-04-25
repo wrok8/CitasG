@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from "react-native";
 
@@ -41,32 +40,36 @@ export default function EscalaMaltratoScreen({
 
   const [respuestas, setRespuestas] = useState({});
 
-  const seleccionar = (preguntaIndex, columna, valor) => {
-    setRespuestas({
-      ...respuestas,
-      [preguntaIndex]: {
-        ...respuestas[preguntaIndex],
-        [columna]: valor,
-      },
-    });
+  const seleccionar = (preguntaIndex, valor) => {
+    setRespuestas((prev) => ({
+      ...prev,
+      [preguntaIndex]: valor,
+    }));
   };
 
   const calcularTotal = () => {
-    let total = 0;
-    Object.values(respuestas).forEach((r) => {
-      if (r?.A === 1) total++;
-    });
-    return total;
+    return Object.values(respuestas).filter(
+      (valor) => valor === 1
+    ).length;
   };
 
   const guardarDatos = () => {
     if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
       return;
     }
 
-    if (Object.keys(respuestas).length !== preguntas.length) {
-      Alert.alert("Error", "Debe responder todas las preguntas en columna A");
+    if (
+      Object.keys(respuestas).length !==
+      preguntas.length
+    ) {
+      Alert.alert(
+        "Error",
+        "Debe responder todas las preguntas"
+      );
       return;
     }
 
@@ -81,39 +84,38 @@ export default function EscalaMaltratoScreen({
       tipo: "Escala Geriátrica de Maltrato",
       fecha: new Date().toLocaleDateString(),
       puntaje: total,
-      detalle: [
-        "Total respuestas afirmativas (Sí): " + total,
-        "Interpretación: " + interpretacion,
+      detalle: preguntas.map((pregunta, index) => ({
+        pregunta,
+        respuesta:
+          respuestas[index] === 1 ? "Sí" : "No",
+      })),
+      interpretacion,
+    };
+
+    setPacienteActual((prev) => ({
+      ...prev,
+      pruebas: [
+        ...(prev?.pruebas || []),
+        nuevaPrueba,
       ],
-    };
-
-    const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
-      ? [...pacienteActual.pruebas, nuevaPrueba]
-      : [nuevaPrueba];
-
-    const pacienteActualizado = {
-      ...pacienteActual,
-      pruebas: pruebasActualizadas,
-    };
-
-    setPacienteActual(pacienteActualizado);
+    }));
 
     Alert.alert(
       "Evaluación Guardada",
-      "Total: " + total + "\n" + interpretacion
+      `Puntaje: ${total}/22\n${interpretacion}`
     );
 
-    setScreen("Resumen");
+    // REGRESAR AL FLUJO DE AGENDAR CITA
+    setScreen("Agendar Cita");
   };
 
-  const columnasA = [
-    { label: "No", value: 0 },
-    { label: "Sí", value: 1 },
-  ];
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Escala Geriátrica de Maltrato</Text>
+    <ScrollView
+      contentContainerStyle={styles.container}
+    >
+      <Text style={styles.title}>
+        Escala Geriátrica de Maltrato
+      </Text>
 
       {preguntas.map((pregunta, index) => (
         <View key={index} style={styles.row}>
@@ -122,18 +124,31 @@ export default function EscalaMaltratoScreen({
           </Text>
 
           <View style={styles.opciones}>
-            {columnasA.map((op, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[
-                  styles.option,
-                  respuestas[index]?.A === op.value && styles.selected,
-                ]}
-                onPress={() => seleccionar(index, "A", op.value)}
-              >
-                <Text>{op.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity
+              style={[
+                styles.option,
+                respuestas[index] === 0 &&
+                  styles.selected,
+              ]}
+              onPress={() =>
+                seleccionar(index, 0)
+              }
+            >
+              <Text>No</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.option,
+                respuestas[index] === 1 &&
+                  styles.selected,
+              ]}
+              onPress={() =>
+                seleccionar(index, 1)
+              }
+            >
+              <Text>Sí</Text>
+            </TouchableOpacity>
           </View>
         </View>
       ))}
@@ -142,8 +157,13 @@ export default function EscalaMaltratoScreen({
         Total (Sí): {calcularTotal()} / 22
       </Text>
 
-      <TouchableOpacity style={styles.button} onPress={guardarDatos}>
-        <Text style={styles.buttonText}>Guardar Evaluación</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={guardarDatos}
+      >
+        <Text style={styles.buttonText}>
+          Guardar Evaluación
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -152,27 +172,35 @@ export default function EscalaMaltratoScreen({
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    backgroundColor: "#f4f6f8",
   },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 20,
+    textAlign: "center",
+    color: "#0D47A1",
   },
   row: {
     marginBottom: 15,
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 10,
   },
   pregunta: {
     fontWeight: "bold",
-    marginBottom: 5,
+    marginBottom: 8,
   },
   opciones: {
     flexDirection: "row",
+    gap: 10,
   },
   option: {
-    padding: 8,
-    marginRight: 10,
+    padding: 10,
     backgroundColor: "#eee",
-    borderRadius: 5,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: "center",
   },
   selected: {
     backgroundColor: "#90caf9",
@@ -181,6 +209,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 20,
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#1565C0",
@@ -188,6 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 20,
+    marginBottom: 30,
   },
   buttonText: {
     color: "white",

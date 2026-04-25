@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { update, ref } from "firebase/database";
 import { db } from "../firebaseConfig";
+import { guardarMovimiento } from "../database";
 
 export default function ResumenScreen({
   paciente,
@@ -30,9 +31,7 @@ export default function ResumenScreen({
   const ultimaMedicion =
     signos[0] || null;
 
-  const cambiarEstado = async (
-    nuevoEstado
-  ) => {
+  const cambiarEstado = async (nuevoEstado) => {
     try {
       await update(
         ref(db, `citas/${paciente.id}`),
@@ -41,11 +40,17 @@ export default function ResumenScreen({
         }
       );
 
+      await guardarMovimiento(
+        paciente.medicoNombre || "Sistema",
+        `Estado cambiado a ${nuevoEstado}`
+      );
+
       Alert.alert(
         "Estado actualizado",
         nuevoEstado
       );
     } catch (error) {
+      console.log(error);
       Alert.alert(
         "Error",
         "No se pudo actualizar"
@@ -85,6 +90,20 @@ export default function ResumenScreen({
           🤒 Síntomas:{" "}
           {paciente.sintomas}
         </Text>
+
+        {paciente.observaciones?.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.subtitulo}>
+            Última observación
+          </Text>
+
+          <Text>
+            {
+              paciente.observaciones[0].nota
+            }
+          </Text>
+        </View>
+      )}
       </View>
 
       {ultimaMedicion && (
@@ -168,6 +187,15 @@ export default function ResumenScreen({
       >
         <Text style={styles.btnText}>
           Concluir
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.btnCurso}
+        onPress={() => setScreen("Observaciones")}
+      >
+        <Text style={styles.btnText}>
+          📝 Observaciones
         </Text>
       </TouchableOpacity>
 

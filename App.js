@@ -18,6 +18,8 @@ import HomeScreen from "./screens/HomeScreen";
 import DetailScreen from "./screens/DetailScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import HistorialPacienteScreen from "./screens/HistorialPacienteScreen";
+import GraficasScreen from "./screens/GraficasScreen";
 import RegisterPatientScreen from "./screens/RegisterPatientScreen";
 import ResumenScreen from "./screens/ResumenScreen";
 import ListaPacientesScreen from "./screens/ListaPacientesScreen";
@@ -45,12 +47,16 @@ import PersonalScreen from "./screens/PersonalScreen";
 import WeatherScreen from "./screens/WeatherScreen";
 import UsuarioScreen from "./screens/UsuarioScreen";
 import PreferenciasPacienteScreen from "./screens/PreferenciasPacienteScreen";
+import ObservacionesScreen from "./screens/ObservacionesScreen";
+import { initBitacoraDB } from "./database.js";
+import FrailScreen from "./screens/FrailScreen.js";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
 import FuncionamientoMenuScreen from "./screens/FuncionamientoMenuScreen";
 import NutricionalMenuScreen from "./screens/NutricionalMenuScreen";
 import CESD7Screen from "./screens/CESD7Screen";
+import BitacoraScreen from "./screens/BitacoraScreen";
 
 import CustomDrawer from "./components/CustomDrawer";
 
@@ -64,13 +70,15 @@ function MainApp() {
   const [loading, setLoading] = useState(true);
 
   // 🔵 EFECTO SPLASH (2.5 segundos)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
+    useEffect(() => {
+      initBitacoraDB();
 
-    return () => clearTimeout(timer);
-  }, []);
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }, []);
 
   // 🔵 MOSTRAR SPLASH ANTES DE TODO
   if (loading) {
@@ -104,15 +112,25 @@ function MainApp() {
 
       case "Mapa":
         return <MapScreen />;
-      
+
+      case "Bitacora":
+      return <BitacoraScreen />;
+
       case "Signos Vitales":
-        return <SignosVitalesScreen />;
+        return <SignosVitalesScreen 
+        pacienteActual={pacienteActual}
+        setPacienteActual={setPacienteActual}
+        setScreen={setScreen}
+        />;
 
       case "Clima":
         return <WeatherScreen />;
 
       case "Usuarios":
          return <UsuarioScreen />;
+
+      case "Graficas":
+          return <GraficasScreen />;
 
       case "Preferencias Paciente":
         return <PreferenciasPacienteScreen />;
@@ -145,6 +163,24 @@ function MainApp() {
             setPacientes={setPacientes}
           />
         );
+
+        case "Observaciones":
+          return (
+            <ObservacionesScreen
+              paciente={pacienteActual}
+              setPacienteActual={setPacienteActual}
+              setScreen={setScreen}
+            />
+          );
+
+        case "HistorialPaciente":
+          return (
+            <HistorialPacienteScreen
+              paciente={pacienteActual}
+              setPacienteActual={setPacienteActual}
+              setScreen={setScreen}
+            />
+          );
 
       case "Evaluaciones":
         return <EvaluacionesScreen />;
@@ -199,6 +235,16 @@ function MainApp() {
             setPacienteActual={setPacienteActual}
           />
         );
+
+       
+          case "Frail":
+            return (
+              <FrailScreen
+                setScreen={setScreen}
+                pacienteActual={pacienteActual}
+                setPacienteActual={setPacienteActual}
+              />
+            );
 
       case "Mini-Mental":
         return (

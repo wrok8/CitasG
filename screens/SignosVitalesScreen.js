@@ -1,4 +1,9 @@
 // screens/SignosVitalesScreen.js
+// ─────────────────────────────────────────────────────────────────────────────
+// INSTALACIÓN REQUERIDA:
+//   npx expo install react-native-chart-kit react-native-svg
+//   expo-sensors
+// ─────────────────────────────────────────────────────────────────────────────
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,20 +14,18 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LineChart } from "react-native-chart-kit";
-import { Accelerometer } from "expo-sensors";
 import { ref, update } from "firebase/database";
 import { db } from "../firebaseConfig";
+import { LineChart } from "react-native-chart-kit";
+import { Accelerometer } from "expo-sensors";
 
 const SCREEN_W = Dimensions.get("window").width - 32;
-const getStorageKey = () =>
-  `@signos_${pacienteActual?.id || "temp"}`;
 
+// ── Rangos normales ────────────────────────────────────────────────────────
 const RANGOS = {
-  bpm: { min: 60, max: 100, label: "60–100 BPM" },
-  temp: { min: 36.0, max: 37.5, label: "36–37.5 °C" },
-  spo2: { min: 95, max: 100, label: "> 95 %" },
+  bpm:  { min: 60,   max: 100,  label: "60–100 BPM"  },
+  temp: { min: 36.0, max: 37.5, label: "36–37.5 °C"  },
+  spo2: { min: 95,   max: 100,  label: "> 95 %"       },
 };
 
 const enRango = (val, key) =>
@@ -33,97 +36,76 @@ const rand = (min, max, dec = 0) => {
   return dec ? parseFloat(v.toFixed(dec)) : Math.round(v);
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
 export default function SignosVitalesScreen({
   pacienteActual,
   setPacienteActual,
   setScreen,
 }) {
+  // Inicializar historial desde el paciente actual (Firebase ya los tiene)
   const [mediciones, setMediciones] = useState(
     pacienteActual?.signosVitales || []
   );
   const [accel, setAccel] = useState({ x: 0, y: 0, z: 0 });
-  const [tab, setTab] = useState("monitor");
-  const [lecturaActual, setLecturaActual] = useState({
-  bpm: 0,
-  temp: 0,
-  spo2: 0,
-  });
+  const [tab, setTab]     = useState("monitor");
+  const [guardando, setGuardando] = useState(false);
 
+  // ── Acelerómetro ──────────────────────────────────────────────────────────
   useEffect(() => {
     Accelerometer.setUpdateInterval(400);
     const sub = Accelerometer.addListener((data) => setAccel(data));
-
-    if (!pacienteActual?.signosVitales?.length) {
-      cargarHistorial();
-    }
-
     return () => sub.remove();
   }, []);
 
+  // Si el paciente cambia desde fuera, sincronizar mediciones
   useEffect(() => {
-  const intervalo = setInterval(() => {
-    const magnitud = Math.sqrt(
-      accel.x ** 2 + accel.y ** 2 + accel.z ** 2
-    );
+    if (pacienteActual?.signosVitales) {
+      setMediciones(pacienteActual.signosVitales);
+    }
+  }, [pacienteActual?.id]);
 
-    const actividad = Math.min(magnitud / 2, 1);
-
-    const bpm = rand(60 + actividad * 10, 95 + actividad * 10);
-    const temp = rand(36.0, 37.4, 1);
-    const spo2 = rand(95, 100);
-
-    setLecturaActual({
-      bpm,
-      temp,
-      spo2,
-    });
-  }, 1000);
-
-  return () => clearInterval(intervalo);
-  }, [accel]);
-
-  const cargarHistorial = async () => {
+  // ── Guardar signos en Firebase bajo el paciente ───────────────────────────
+  const guardarEnFirebase = async (lista) => {
+    if (!pacienteActual?.id) {
+      Alert.alert("Error", "No hay paciente seleccionado");
+      return false;
+    }
     try {
-      const raw = await AsyncStorage.getItem(
-        getStorageKey()
-      );
-
-      if (raw) {
-        setMediciones(JSON.parse(raw));
-      } else if (pacienteActual?.signosVitales) {
-        setMediciones(pacienteActual.signosVitales);
-      }
+      await update(ref(db, `citas/${pacienteActual.id}`), {
+        signosVitales: lista,
+      });
+      // Mantener pacienteActual actualizado en memoria
+      setPacienteActual((prev) => ({
+        ...prev,
+        signosVitales: lista,
+      }));
+      return true;
     } catch (error) {
-      console.log(error);
+      console.log("Error guardando signos:", error);
+      Alert.alert("Error", "No se pudieron guardar los signos vitales");
+      return false;
     }
   };
 
-  const guardarHistorial = async (lista) => {
-    try {
-      await AsyncStorage.setItem(
-        getStorageKey(),
-        JSON.stringify(lista)
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
+  // ── Tomar medición ────────────────────────────────────────────────────────
   const tomarMedicion = async () => {
-    const magnitud = Math.sqrt(
-      accel.x ** 2 + accel.y ** 2 + accel.z ** 2
-    );
+    if (!pacienteActual?.id) {
+      Alert.alert("Aviso", "Primero debes seleccionar un paciente");
+      return;
+    }
 
+    const magnitud = Math.sqrt(accel.x ** 2 + accel.y ** 2 + accel.z ** 2);
     const actividad = Math.min(magnitud / 2, 1);
 
-    const { bpm, temp, spo2 } = lecturaActual;
-
+    const bpm  = rand(55 + actividad * 15, 105 + actividad * 10);
+    const temp = rand(35.4 + actividad * 0.3, 38.2 + actividad * 0.3, 1);
+    const spo2 = rand(91, 100);
     const ahora = new Date();
 
     const nueva = {
-      id: ahora.getTime().toString(),
+      id:    ahora.getTime().toString(),
       fecha: ahora.toLocaleDateString("es-MX"),
-      hora: ahora.toLocaleTimeString("es-MX", {
+      hora:  ahora.toLocaleTimeString("es-MX", {
         hour: "2-digit",
         minute: "2-digit",
       }),
@@ -133,327 +115,348 @@ export default function SignosVitalesScreen({
     };
 
     const actualizadas = [nueva, ...mediciones].slice(0, 30);
-
     setMediciones(actualizadas);
-    await guardarHistorial(actualizadas);
 
-    if (pacienteActual?.id) {
-      try {
-        await update(ref(db, `citas/${pacienteActual.id}`), {
-          signosVitales: actualizadas,
-        });
+    // Guardar en Firebase inmediatamente
+    await guardarEnFirebase(actualizadas);
 
-        setPacienteActual({
-          ...pacienteActual,
-          signosVitales: actualizadas,
-        });
-      } catch (error) {
-        console.log("Error guardando signos vitales:", error);
-      }
-    }
-
+    // Alertas fuera de rango
     const alertas = [];
-
-    if (!enRango(bpm, "bpm")) {
-      alertas.push(
-        `❤️ FC: ${bpm} BPM (normal: ${RANGOS.bpm.label})`
-      );
-    }
-
-    if (!enRango(temp, "temp")) {
-      alertas.push(
-        `🌡️ Temp: ${temp}°C (normal: ${RANGOS.temp.label})`
-      );
-    }
-
-    if (!enRango(spo2, "spo2")) {
-      alertas.push(
-        `💧 SpO₂: ${spo2}% (normal: ${RANGOS.spo2.label})`
-      );
-    }
+    if (!enRango(bpm,  "bpm"))  alertas.push(`❤️ FC: ${bpm} BPM (normal: ${RANGOS.bpm.label})`);
+    if (!enRango(temp, "temp")) alertas.push(`🌡️ Temp: ${temp}°C (normal: ${RANGOS.temp.label})`);
+    if (!enRango(spo2, "spo2")) alertas.push(`💧 SpO₂: ${spo2}% (normal: ${RANGOS.spo2.label})`);
 
     if (alertas.length > 0) {
       Alert.alert(
         "⚠️ Valores Fuera de Rango",
-        alertas.join("\n\n")
+        alertas.join("\n\n"),
+        [{ text: "Entendido" }]
       );
-    } else {
-      Alert.alert("Éxito", "Medición guardada correctamente");
     }
   };
 
-  const ultima = mediciones[0] ?? null;
+  // ── Guardar y pasar al Resumen ────────────────────────────────────────────
+  const guardarYVerResumen = async () => {
+    if (mediciones.length === 0) {
+      Alert.alert("Aviso", "Toma al menos una medición antes de continuar");
+      return;
+    }
+    setGuardando(true);
+    const ok = await guardarEnFirebase(mediciones);
+    setGuardando(false);
+    if (ok) setScreen("Resumen");
+  };
 
+  // ── Datos para gráficas ───────────────────────────────────────────────────
+  const ultima   = mediciones[0] ?? null;
   const ultimas7 = mediciones.slice(0, 7).reverse();
   const hayDatos = ultimas7.length > 0;
-  const etiquetas = hayDatos
-    ? ultimas7.map((m) => m.hora)
-    : ["--"];
+  const etiquetas = hayDatos ? ultimas7.map((m) => m.hora) : ["--"];
+  const datosBpm  = hayDatos ? ultimas7.map((m) => m.bpm)  : [0];
+  const datosTemp = hayDatos ? ultimas7.map((m) => m.temp) : [0];
+  const datosSpo2 = hayDatos ? ultimas7.map((m) => m.spo2) : [0];
 
-  const datosBpm = hayDatos
-    ? ultimas7.map((m) => m.bpm)
-    : [0];
-
-  const datosTemp = hayDatos
-    ? ultimas7.map((m) => m.temp)
-    : [0];
-
-  const datosSpo2 = hayDatos
-    ? ultimas7.map((m) => m.spo2)
-    : [0];
-
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <ScrollView style={s.container}>
-      <View style={s.tabs}>
-        <Tab
-          label="📊 Monitor"
-          active={tab === "monitor"}
-          onPress={() => setTab("monitor")}
-        />
-        <Tab
-          label="📋 Historial"
-          active={tab === "historial"}
-          onPress={() => setTab("historial")}
-        />
-      </View>
-
-      {tab === "monitor" && (
-        <>
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Lectura Actual</Text>
-            <View style={s.row3}>
-              <Badge
-                icon="❤️"
-                label="Frec. Cardíaca"
-                value={lecturaActual.bpm}
-                unit="BPM"
-                color="#E53935"
-                ok={ultima ? enRango(ultima.bpm, "bpm") : true}
-              />
-              <Badge
-                icon="🌡️"
-                label="Temperatura"
-                value={lecturaActual.spo2}
-                unit="°C"
-                color="#FB8C00"
-                ok={ultima ? enRango(ultima.temp, "temp") : true}
-              />
-              <Badge
-                icon="💧"
-                label="SpO₂"
-                value={lecturaActual.spo2}
-                unit="%"
-                color="#1E88E5"
-                ok={ultima ? enRango(ultima.spo2, "spo2") : true}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={s.btnMedir}
-            onPress={tomarMedicion}
-          >
-            <Text style={s.btnMedirTxt}>
-              📊 Tomar Nueva Medición
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={s.btnResumen}
-           onPress={() => {
-            setPacienteActual({
-              ...pacienteActual,
-              signosVitales: mediciones,
-            });
-
-            setScreen("Resumen");
-          }}
-          >
-            <Text style={s.btnMedirTxt}>
-              📋 Ir al Resumen
-            </Text>
-          </TouchableOpacity>
-
-          {hayDatos && (
-            <View style={s.card}>
-              <Text style={s.cardTitle}>
-                Gráficas de Seguimiento
-              </Text>
-
-              <LineChart
-                data={{
-                  labels: etiquetas,
-                  datasets: [{ data: datosBpm }],
-                }}
-                width={SCREEN_W}
-                height={180}
-                chartConfig={makeConfig("#E53935")}
-                bezier
-                style={s.chart}
-              />
-
-              <LineChart
-                data={{
-                  labels: etiquetas,
-                  datasets: [{ data: datosTemp }],
-                }}
-                width={SCREEN_W}
-                height={180}
-                chartConfig={makeConfig("#FB8C00")}
-                bezier
-                style={s.chart}
-              />
-
-              <LineChart
-                data={{
-                  labels: etiquetas,
-                  datasets: [{ data: datosSpo2 }],
-                }}
-                width={SCREEN_W}
-                height={180}
-                chartConfig={makeConfig("#1E88E5")}
-                bezier
-                style={s.chart}
-              />
-            </View>
-          )}
-        </>
-      )}
-
-      {tab === "historial" && (
-        <View style={s.card}>
-          <Text style={s.cardTitle}>
-            📋 Historial de Mediciones
+    <View style={{ flex: 1 }}>
+      {/* Banner del paciente activo */}
+      {pacienteActual?.nombre && (
+        <View style={s.pacienteBanner}>
+          <Text style={s.pacienteTexto}>
+            👤 Paciente: {pacienteActual.nombre}
           </Text>
-          {mediciones.map((m) => (
-            <ItemHistorial key={m.id} m={m} />
-          ))}
         </View>
       )}
-    </ScrollView>
+
+      <ScrollView
+        style={s.container}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Pestañas */}
+        <View style={s.tabs}>
+          <TabBtn
+            label="📊 Monitor"
+            active={tab === "monitor"}
+            onPress={() => setTab("monitor")}
+          />
+          <TabBtn
+            label="📋 Historial"
+            active={tab === "historial"}
+            onPress={() => setTab("historial")}
+          />
+        </View>
+
+        {/* ══ TAB: MONITOR ══════════════════════════════════════════════════ */}
+        {tab === "monitor" && (
+          <>
+            {/* Lectura actual */}
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Lectura Actual</Text>
+              <View style={s.row3}>
+                <Badge
+                  icon="❤️"
+                  label="Frec. Cardíaca"
+                  value={ultima?.bpm ?? "--"}
+                  unit="BPM"
+                  color="#E53935"
+                  ok={ultima ? enRango(ultima.bpm, "bpm") : true}
+                />
+                <Badge
+                  icon="🌡️"
+                  label="Temperatura"
+                  value={ultima?.temp ?? "--"}
+                  unit="°C"
+                  color="#FB8C00"
+                  ok={ultima ? enRango(ultima.temp, "temp") : true}
+                />
+                <Badge
+                  icon="💧"
+                  label="SpO₂"
+                  value={ultima?.spo2 ?? "--"}
+                  unit="%"
+                  color="#1E88E5"
+                  ok={ultima ? enRango(ultima.spo2, "spo2") : true}
+                />
+              </View>
+              {ultima && (
+                <Text style={s.fechaUlt}>
+                  Última lectura: {ultima.fecha} {ultima.hora}
+                </Text>
+              )}
+            </View>
+
+            {/* Sensor acelerómetro */}
+            <View style={s.sensorCard}>
+              <Text style={s.sensorTitle}>
+                🔄 Sensor de Movimiento (Acelerómetro)
+              </Text>
+              <View style={s.accelRow}>
+                <AccelVal axis="X" val={accel.x} />
+                <AccelVal axis="Y" val={accel.y} />
+                <AccelVal axis="Z" val={accel.z} />
+              </View>
+              <Text style={s.sensorNote}>
+                El movimiento del dispositivo influye en la simulación.
+              </Text>
+            </View>
+
+            {/* Botón tomar medición */}
+            <TouchableOpacity
+              style={s.btnMedir}
+              onPress={tomarMedicion}
+              activeOpacity={0.8}
+            >
+              <Text style={s.btnMedirTxt}>📊 Tomar Nueva Medición</Text>
+            </TouchableOpacity>
+
+            {/* Gráficas */}
+            {hayDatos ? (
+              <View style={s.card}>
+                <Text style={s.cardTitle}>Gráficas de Seguimiento</Text>
+
+                <Text style={s.chartLabel}>❤️ Frecuencia Cardíaca (BPM)</Text>
+                <LineChart
+                  data={{ labels: etiquetas, datasets: [{ data: datosBpm }] }}
+                  width={SCREEN_W}
+                  height={190}
+                  chartConfig={makeConfig("#E53935", "#E53935")}
+                  bezier
+                  style={s.chart}
+                  withDots
+                />
+
+                <Text style={s.chartLabel}>🌡️ Temperatura Corporal (°C)</Text>
+                <LineChart
+                  data={{ labels: etiquetas, datasets: [{ data: datosTemp }] }}
+                  width={SCREEN_W}
+                  height={190}
+                  chartConfig={makeConfig("#FB8C00", "#FB8C00", 0.35)}
+                  bezier
+                  withShadow
+                  style={s.chart}
+                />
+
+                <Text style={s.chartLabel}>💧 Saturación de Oxígeno (%)</Text>
+                <LineChart
+                  data={{ labels: etiquetas, datasets: [{ data: datosSpo2 }] }}
+                  width={SCREEN_W}
+                  height={190}
+                  chartConfig={makeConfig("#1E88E5", "#1E88E5", 0.3)}
+                  bezier
+                  withShadow
+                  style={s.chart}
+                />
+              </View>
+            ) : (
+              <View style={s.emptyBox}>
+                <Text style={s.emptyTxt}>
+                  Toma tu primera medición para ver las gráficas 📈
+                </Text>
+              </View>
+            )}
+
+            {/* Botón guardar y ver resumen */}
+            <TouchableOpacity
+              style={[s.btnResumen, guardando && { opacity: 0.6 }]}
+              onPress={guardarYVerResumen}
+              disabled={guardando}
+              activeOpacity={0.8}
+            >
+              <Text style={s.btnMedirTxt}>
+                {guardando ? "Guardando..." : "✅ Guardar y Ver Resumen"}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* ══ TAB: HISTORIAL ════════════════════════════════════════════════ */}
+        {tab === "historial" && (
+          <View style={s.card}>
+            <Text style={s.cardTitle}>📋 Historial de Mediciones</Text>
+            {mediciones.length === 0 ? (
+              <Text style={s.emptyTxt}>
+                No hay mediciones registradas aún.
+              </Text>
+            ) : (
+              mediciones.map((m) => (
+                <ItemHistorial key={m.id} m={m} />
+              ))
+            )}
+          </View>
+        )}
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </View>
   );
 }
 
-function Tab({ label, active, onPress }) {
+// ── Sub-componentes ──────────────────────────────────────────────────────────
+function TabBtn({ label, active, onPress }) {
   return (
     <TouchableOpacity
       style={[s.tab, active && s.tabActive]}
       onPress={onPress}
+      activeOpacity={0.8}
     >
-      <Text style={[s.tabTxt, active && s.tabTxtActive]}>
-        {label}
-      </Text>
+      <Text style={[s.tabTxt, active && s.tabTxtActive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-function Badge({ icon, label, value, unit, color }) {
+function Badge({ icon, label, value, unit, color, ok }) {
   return (
-    <View style={s.badge}>
-      <Text>{icon}</Text>
-      <Text style={{ color, fontWeight: "bold" }}>
-        {value}
-      </Text>
-      <Text>{unit}</Text>
-      <Text>{label}</Text>
+    <View style={[s.badge, !ok && s.badgeAlerta]}>
+      <Text style={s.badgeIcon}>{icon}</Text>
+      <Text style={[s.badgeVal, { color }]}>{value}</Text>
+      <Text style={[s.badgeUnit, { color }]}>{unit}</Text>
+      <Text style={s.badgeLbl}>{label}</Text>
+      {!ok && <Text style={s.alertaDot}>⚠️</Text>}
+    </View>
+  );
+}
+
+function AccelVal({ axis, val }) {
+  return (
+    <View style={s.accelItem}>
+      <Text style={s.accelAxis}>{axis}</Text>
+      <Text style={s.accelNum}>{val.toFixed(2)}</Text>
     </View>
   );
 }
 
 function ItemHistorial({ m }) {
+  const bpmOk  = enRango(m.bpm,  "bpm");
+  const tempOk = enRango(m.temp, "temp");
+  const spo2Ok = enRango(m.spo2, "spo2");
+  const todoOk = bpmOk && tempOk && spo2Ok;
   return (
-    <View style={s.histItem}>
-      <Text>
-        🕐 {m.fecha} {m.hora}
+    <View style={[s.histItem, !todoOk && s.histItemAlerta]}>
+      <Text style={s.histFecha}>
+        🕐 {m.fecha} {m.hora} {!todoOk && "⚠️"}
       </Text>
-      <Text>❤️ {m.bpm} BPM</Text>
-      <Text>🌡️ {m.temp}°C</Text>
-      <Text>💧 {m.spo2}%</Text>
+      <View style={s.histRow}>
+        <Text style={[s.histVal, !bpmOk  && s.histValAlerta]}>❤️ {m.bpm} BPM</Text>
+        <Text style={[s.histVal, !tempOk && s.histValAlerta]}>🌡️ {m.temp}°C</Text>
+        <Text style={[s.histVal, !spo2Ok && s.histValAlerta]}>💧 {m.spo2}%</Text>
+      </View>
     </View>
   );
 }
 
-function makeConfig(color) {
+function makeConfig(strokeColor, fillColor, fillOpacity = 0) {
   return {
     backgroundGradientFrom: "#ffffff",
-    backgroundGradientTo: "#ffffff",
-    color: () => color,
-    decimalPlaces: 1,
+    backgroundGradientTo:   "#ffffff",
+    color: (op = 1) =>
+      strokeColor +
+      Math.round(op * 255)
+        .toString(16)
+        .padStart(2, "0"),
+    labelColor:              () => "#666",
+    strokeWidth:             2.5,
+    decimalPlaces:           1,
+    fillShadowGradient:      fillColor,
+    fillShadowGradientOpacity: fillOpacity,
+    propsForDots: { r: "4", strokeWidth: "1", stroke: strokeColor },
   };
 }
 
+// ── Estilos ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#EEF2F7",
-    padding: 16,
-  },
-  tabs: {
-    flexDirection: "row",
-    marginBottom: 14,
-    gap: 8,
-  },
-  tab: {
-    flex: 1,
-    padding: 11,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    alignItems: "center",
-  },
-  tabActive: {
-    backgroundColor: "#1565C0",
-  },
-  tabTxt: {
-    fontWeight: "700",
-  },
-  tabTxtActive: {
-    color: "white",
-  },
-  card: {
-    backgroundColor: "white",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  row3: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  badge: {
-    alignItems: "center",
-    flex: 1,
-  },
-  btnMedir: {
-    backgroundColor: "#1565C0",
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  btnResumen: {
-    backgroundColor: "#2E7D32",
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  btnMedirTxt: {
-    color: "white",
-    fontWeight: "700",
-  },
-  chart: {
-    marginTop: 10,
-    borderRadius: 10,
-  },
-  histItem: {
-    backgroundColor: "#F9FAFB",
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
+  container:      { flex: 1, backgroundColor: "#EEF2F7", padding: 16 },
+  pacienteBanner: { backgroundColor: "#E3F2FD", padding: 12, alignItems: "center" },
+  pacienteTexto:  { fontWeight: "bold", color: "#0D47A1", fontSize: 14 },
+
+  // Tabs
+  tabs:       { flexDirection: "row", marginBottom: 14, gap: 8 },
+  tab:        { flex: 1, padding: 11, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", elevation: 1 },
+  tabActive:  { backgroundColor: "#1565C0" },
+  tabTxt:     { fontWeight: "700", color: "#555", fontSize: 13 },
+  tabTxtActive: { color: "#fff" },
+
+  // Card
+  card:      { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 14, elevation: 3 },
+  cardTitle: { fontSize: 15, fontWeight: "700", color: "#1565C0", marginBottom: 12 },
+
+  // Badges
+  row3:        { flexDirection: "row", justifyContent: "space-around" },
+  badge:       { alignItems: "center", flex: 1, marginHorizontal: 4, padding: 10, borderRadius: 12, backgroundColor: "#F5F7FA" },
+  badgeAlerta: { backgroundColor: "#FFF0F0", borderWidth: 1.5, borderColor: "#FFCDD2" },
+  badgeIcon:   { fontSize: 24 },
+  badgeVal:    { fontSize: 22, fontWeight: "800", marginTop: 2 },
+  badgeUnit:   { fontSize: 11, fontWeight: "600" },
+  badgeLbl:    { fontSize: 10, color: "#777", textAlign: "center", marginTop: 3 },
+  alertaDot:   { fontSize: 13, marginTop: 2 },
+  fechaUlt:    { textAlign: "center", color: "#999", fontSize: 11, marginTop: 10 },
+
+  // Sensor
+  sensorCard:  { backgroundColor: "#E8F5E9", borderRadius: 12, padding: 12, marginBottom: 14 },
+  sensorTitle: { fontWeight: "700", color: "#2E7D32", fontSize: 13, marginBottom: 8 },
+  accelRow:    { flexDirection: "row", justifyContent: "space-around" },
+  accelItem:   { alignItems: "center" },
+  accelAxis:   { fontWeight: "700", color: "#388E3C" },
+  accelNum:    { fontFamily: "monospace", color: "#1B5E20", fontSize: 13 },
+  sensorNote:  { color: "#555", fontSize: 11, marginTop: 8, fontStyle: "italic" },
+
+  // Buttons
+  btnMedir:   { backgroundColor: "#1565C0", padding: 16, borderRadius: 14, alignItems: "center", marginBottom: 14, elevation: 4 },
+  btnResumen: { backgroundColor: "#2E7D32", padding: 16, borderRadius: 14, alignItems: "center", marginBottom: 14, elevation: 4 },
+  btnMedirTxt: { color: "#fff", fontSize: 16, fontWeight: "700" },
+
+  // Charts
+  chartLabel: { fontSize: 13, fontWeight: "700", color: "#333", marginTop: 12, marginBottom: 6 },
+  chart:      { borderRadius: 10 },
+
+  // Empty
+  emptyBox: { alignItems: "center", padding: 40 },
+  emptyTxt: { color: "#999", textAlign: "center", fontSize: 14 },
+
+  // Historial
+  histItem:      { backgroundColor: "#F9FAFB", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#4CAF50" },
+  histItemAlerta: { borderLeftColor: "#F44336", backgroundColor: "#FFF8F8" },
+  histFecha:     { fontSize: 11, color: "#888", marginBottom: 4 },
+  histRow:       { flexDirection: "row", justifyContent: "space-between" },
+  histVal:       { fontSize: 13, fontWeight: "600", color: "#333" },
+  histValAlerta: { color: "#E53935" },
 });

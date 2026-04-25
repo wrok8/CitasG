@@ -69,7 +69,8 @@ export default function MovilidadEntornoScreen({
       return;
     }
 
-    const { positivas, negativas, riesgo } = calcularResultado();
+    const { positivas, negativas, riesgo } =
+      calcularResultado();
 
     const nuevaPrueba = {
       tipo: "Movilidad en el Entorno",
@@ -82,23 +83,22 @@ export default function MovilidadEntornoScreen({
       ],
     };
 
-    const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
-      ? [...pacienteActual.pruebas, nuevaPrueba]
-      : [nuevaPrueba];
-
-    const pacienteActualizado = {
-      ...pacienteActual,
-      pruebas: pruebasActualizadas,
-    };
-
-    setPacienteActual(pacienteActualizado);
+    
+    setPacienteActual((prev) => ({
+      ...prev,
+      pruebas: [
+        ...(prev?.pruebas || []),
+        nuevaPrueba,
+      ],
+    }));
 
     Alert.alert(
       "Evaluación Guardada",
-      "Riesgo: " + riesgo
+      `Negativas: ${negativas}\nRiesgo: ${riesgo}`
     );
 
-    setScreen("Resumen");
+    
+    setScreen("Agendar Cita");
   };
 
   const { positivas, negativas, riesgo } = calcularResultado();

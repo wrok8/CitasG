@@ -1,23 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
-  Button,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Accelerometer } from "expo-sensors";
+import { FormSection } from "../components/FormSection";
 
-const MiniCogScreen = ({
+export default function MiniCogScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
-}) => {
+}) {
   const [palabra1, setPalabra1] = useState("");
   const [palabra2, setPalabra2] = useState("");
   const [palabra3, setPalabra3] = useState("");
+
+  const [resultado, setResultado] = useState("");
+  const [deterioro, setDeterioro] = useState("");
+
+  const [sensorData, setSensorData] = useState({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
 
   const [attempts, setAttempts] = useState({
     palabra1: false,
@@ -25,6 +37,17 @@ const MiniCogScreen = ({
     palabra3: false,
     dibujoReloj: false,
   });
+
+  useEffect(() => {
+    const subscription =
+      Accelerometer.addListener((data) => {
+        setSensorData(data);
+      });
+
+    Accelerometer.setUpdateInterval(1000);
+
+    return () => subscription.remove();
+  }, []);
 
   const toggleAttempt = (key) => {
     setAttempts((prev) => ({
@@ -35,180 +58,263 @@ const MiniCogScreen = ({
 
   const calcularPuntos = () => {
     let puntos = 0;
+
     if (attempts.palabra1) puntos += 1;
     if (attempts.palabra2) puntos += 1;
     if (attempts.palabra3) puntos += 1;
     if (attempts.dibujoReloj) puntos += 2;
+
     return puntos;
   };
 
-  const handleEnviar = () => {
+  const puntosTotales = calcularPuntos();
+
+  useEffect(() => {
+    if (puntosTotales <= 2) {
+      setDeterioro(
+        "Posible deterioro cognitivo"
+      );
+    } else {
+      setDeterioro(
+        "Sin deterioro cognitivo"
+      );
+    }
+  }, [attempts]);
+
+  const guardarPrueba = () => {
     if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
       return;
     }
 
     const nuevaPrueba = {
       tipo: "Mini-Cog",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: calcularPuntos(),
-      detalle: [
-        `Palabra 1: ${palabra1}`,
-        `Palabra 2: ${palabra2}`,
-        `Palabra 3: ${palabra3}`,
-        `Intento 1: ${attempts.palabra1 ? "Correcto" : "Incorrecto"}`,
-        `Intento 2: ${attempts.palabra2 ? "Correcto" : "Incorrecto"}`,
-        `Intento 3: ${attempts.palabra3 ? "Correcto" : "Incorrecto"}`,
-        `Dibujo Reloj: ${
-          attempts.dibujoReloj ? "Correcto" : "Incorrecto"
-        }`,
-      ],
+      fecha:
+        new Date().toLocaleDateString(),
+      puntaje: puntosTotales,
+      resultado: deterioro,
+      detalle: {
+        palabra1,
+        palabra2,
+        palabra3,
+        intentos: attempts,
+        sensor: sensorData,
+      },
     };
 
-    const pruebasActuales = pacienteActual.pruebas || [];
+    const pruebasActualizadas =
+      Array.isArray(
+        pacienteActual.pruebas
+      )
+        ? [
+            ...pacienteActual.pruebas,
+            nuevaPrueba,
+          ]
+        : [nuevaPrueba];
 
-    const pacienteActualizado = {
+    setPacienteActual({
       ...pacienteActual,
-      pruebas: [...pruebasActuales, nuevaPrueba],
-    };
-
-    setPacienteActual(pacienteActualizado);
-
-    Alert.alert("Éxito", "Mini-Cog guardado correctamente");
-
-    setScreen("Resumen");
+      pruebas: pruebasActualizadas,
+    });
+    
+    setScreen("Agendar Cita");
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <Text style={styles.titulo}>Mini-Cog</Text>
-      <Text style={styles.subtitulo}>
-        Diga 3 palabras y dibuje un reloj
+  const ScoreSwitch = ({
+    label,
+    id,
+  }) => (
+    <View style={styles.switchContainer}>
+      <Text style={styles.switchLabel}>
+        {label}
       </Text>
 
-      <Text style={styles.label}>Palabra 1:</Text>
-      <TextInput
-        style={styles.input}
-        value={palabra1}
-        onChangeText={setPalabra1}
+      <Switch
+        value={attempts[id]}
+        onValueChange={() =>
+          toggleAttempt(id)
+        }
       />
-
-      <Text style={styles.label}>Palabra 2:</Text>
-      <TextInput
-        style={styles.input}
-        value={palabra2}
-        onChangeText={setPalabra2}
-      />
-
-      <Text style={styles.label}>Palabra 3:</Text>
-      <TextInput
-        style={styles.input}
-        value={palabra3}
-        onChangeText={setPalabra3}
-      />
-
-      <Text style={styles.sectionTitle}>Evaluación</Text>
-
-      <View style={styles.switchContainer}>
-        <Text>Intento 1</Text>
-        <Switch
-          value={attempts.palabra1}
-          onValueChange={() => toggleAttempt("palabra1")}
-        />
-      </View>
-
-      <View style={styles.switchContainer}>
-        <Text>Intento 2</Text>
-        <Switch
-          value={attempts.palabra2}
-          onValueChange={() => toggleAttempt("palabra2")}
-        />
-      </View>
-
-      <View style={styles.switchContainer}>
-        <Text>Intento 3</Text>
-        <Switch
-          value={attempts.palabra3}
-          onValueChange={() => toggleAttempt("palabra3")}
-        />
-      </View>
-
-      <View style={styles.switchContainer}>
-        <Text>Dibujo de Reloj</Text>
-        <Switch
-          value={attempts.dibujoReloj}
-          onValueChange={() => toggleAttempt("dibujoReloj")}
-        />
-      </View>
-
-      <Text style={styles.points}>
-        Puntos Totales: {calcularPuntos()}
-      </Text>
-
-      <View style={{ marginTop: 20 }}>
-        <Button
-          title="Enviar Evaluación"
-          onPress={handleEnviar}
-          color="#841584"
-        />
-      </View>
-    </ScrollView>
+    </View>
   );
-};
 
-export default MiniCogScreen;
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={
+          styles.scrollContainer
+        }
+      >
+        <Text style={styles.titulo}>
+          Mini-Cog
+        </Text>
+
+        <Text style={styles.subtitulo}>
+          Diga 3 palabras y dibuje un reloj
+        </Text>
+
+        <FormSection
+          title="Palabras"
+          subtitle="Ingrese las 3 palabras"
+        >
+          <TextInput
+            style={styles.input}
+            placeholder="Palabra 1"
+            value={palabra1}
+            onChangeText={setPalabra1}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Palabra 2"
+            value={palabra2}
+            onChangeText={setPalabra2}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Palabra 3"
+            value={palabra3}
+            onChangeText={setPalabra3}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Evaluación"
+          subtitle="5 puntos"
+        >
+          <ScoreSwitch
+            label="Palabra 1 recordada"
+            id="palabra1"
+          />
+
+          <ScoreSwitch
+            label="Palabra 2 recordada"
+            id="palabra2"
+          />
+
+          <ScoreSwitch
+            label="Palabra 3 recordada"
+            id="palabra3"
+          />
+
+          <ScoreSwitch
+            label="Dibujo de reloj correcto"
+            id="dibujoReloj"
+          />
+        </FormSection>
+
+        <FormSection
+          title="Resultado"
+          subtitle=""
+        >
+          <Text style={styles.points}>
+            Puntos Totales:{" "}
+            {puntosTotales} / 5
+          </Text>
+
+          <Text style={styles.result}>
+            {deterioro}
+          </Text>
+
+          <Text
+            style={styles.sensorText}
+          >
+            Acelerómetro:
+            {"\n"}x:{" "}
+            {sensorData.x.toFixed(2)}
+            {"\n"}y:{" "}
+            {sensorData.y.toFixed(2)}
+            {"\n"}z:{" "}
+            {sensorData.z.toFixed(2)}
+          </Text>
+        </FormSection>
+
+        <TouchableOpacity
+          style={styles.btnSubmit}
+          onPress={guardarPrueba}
+        >
+          <Text
+            style={
+              styles.btnTextSubmit
+            }
+          >
+            GUARDAR EVALUACIÓN
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
   scrollContainer: {
     padding: 20,
-    backgroundColor: "#f5f5f5",
+    paddingBottom: 40,
   },
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
-    color: "purple",
     marginBottom: 10,
   },
   subtitulo: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 20,
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 16,
-    marginTop: 10,
-  },
   input: {
-    height: 40,
+    height: 45,
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 5,
+    borderRadius: 8,
     paddingHorizontal: 10,
     backgroundColor: "#fff",
+    marginBottom: 10,
   },
   switchContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent:
+      "space-between",
     alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    marginBottom: 10,
+    marginVertical: 8,
+  },
+  switchLabel: {
+    fontSize: 16,
+    flex: 1,
   },
   points: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    marginVertical: 20,
     textAlign: "center",
+  },
+  result: {
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 10,
+    fontWeight: "bold",
+  },
+  sensorText: {
+    marginTop: 15,
+    textAlign: "center",
+    color: "#666",
+  },
+  btnSubmit: {
+    backgroundColor: "#1565C0",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  btnTextSubmit: {
+    color: "white",
+    fontWeight: "bold",
   },
 });

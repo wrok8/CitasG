@@ -16,6 +16,7 @@ import { db } from "../firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as SQLite from "expo-sqlite";
+import { guardarMovimiento } from "../database";
 
 export default function RegisterPatientScreen({
   setScreen,
@@ -184,7 +185,50 @@ export default function RegisterPatientScreen({
     setScreen("Resumen");
   };
 
+  const validarDisponibilidadHorario = () => {
+  const nuevaFechaHora = new Date(form.fecha);
+  
+  const [horas, minutos] = form.hora.split(":");
+  nuevaFechaHora.setHours(
+    parseInt(horas),
+    parseInt(minutos),
+    0
+  );
+
+  const conflicto = citasExistentes.some((cita) => {
+    if (cita.medicoId !== form.medicoId) return false;
+
+    const fechaExistente = new Date(cita.fecha);
+
+    const [h, m] = cita.hora.split(":");
+    fechaExistente.setHours(
+      parseInt(h),
+      parseInt(m),
+      0
+    );
+
+    const diferencia =
+      Math.abs(
+        nuevaFechaHora - fechaExistente
+      ) /
+      (1000 * 60);
+
+    return diferencia < 30;
+  });
+
+  return !conflicto;
+};
+
 const guardarCitaYContinuar = async (pantallaDestino) => {
+
+  if (!validarDisponibilidadHorario()) {
+  Alert.alert(
+    "Horario ocupado",
+    "El médico ya tiene una cita en ese horario. Debe haber al menos 30 minutos de diferencia."
+  );
+  return;
+}
+
   if (!form.nombre || !form.telefono) {
     Alert.alert("Error", "Debes seleccionar un usuario");
     return;
@@ -228,6 +272,12 @@ const guardarCitaYContinuar = async (pantallaDestino) => {
       id: citaId,
       ...datosCita,
     });
+
+    await guardarMovimiento(
+    form.medicoNombre || "Sistema",
+    "Cita agendada"
+  );
+
 
     setScreen(pantallaDestino);
   } catch (error) {

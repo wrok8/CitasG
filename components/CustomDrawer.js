@@ -43,7 +43,14 @@ export default function CustomDrawer({
       <Item label="Mapa" />
       <Item label="Signos Vitales" />
       
-
+      <TouchableOpacity
+      onPress={() => {
+        setScreen("Graficas");
+        closeDrawer();
+      }}
+    >
+      <Text>📊 Dashboard</Text>
+    </TouchableOpacity>
       <TouchableOpacity onPress={() => setScreen("Clima")}>
       <Text>Clima</Text>
       </TouchableOpacity>
@@ -51,6 +58,18 @@ export default function CustomDrawer({
       <TouchableOpacity onPress={() => setScreen("Usuarios")}>
       <Text>👤 Usuarios</Text>
      </TouchableOpacity>
+
+     <TouchableOpacity
+      style={styles.menuItem}
+      onPress={() => {
+        setScreen("Bitacora");
+        closeDrawer();
+      }}
+    >
+      <Text style={styles.menuText}>
+        📘 Bitácora
+      </Text>
+    </TouchableOpacity>
 
       <TouchableOpacity style={styles.logout} onPress={onLogout}>
         <Text style={styles.logoutText}>Salir</Text>

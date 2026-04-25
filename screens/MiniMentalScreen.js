@@ -1,228 +1,263 @@
 import React, { useState } from "react";
 import {
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
+  Image,
   Alert,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+
+const preguntas = [
+  { id: 0,  pregunta: "¿Qué año es?",                        encabezado: "Orientación Temporal"  },
+  { id: 1,  pregunta: "¿En qué mes estamos?",                encabezado: "Orientación Temporal"  },
+  { id: 2,  pregunta: "¿Qué día del mes es hoy?",            encabezado: "Orientación Temporal"  },
+  { id: 3,  pregunta: "¿Qué día de la semana es hoy?",       encabezado: "Orientación Temporal"  },
+  { id: 4,  pregunta: "¿En qué país estamos?",               encabezado: "Orientación Espacial"  },
+  { id: 5,  pregunta: "¿En qué estado estamos?",             encabezado: "Orientación Espacial"  },
+  { id: 6,  pregunta: "¿En qué ciudad estamos?",             encabezado: "Orientación Espacial"  },
+  { id: 7,  pregunta: "¿En qué lugar estamos?",              encabezado: "Orientación Espacial"  },
+  { id: 8,  pregunta: "¿En qué piso estamos?",               encabezado: "Orientación Espacial"  },
+  { id: 9,  pregunta: "Repita: Casa, Árbol, Perro",          encabezado: "Memoria Inmediata"     },
+  { id: 10, pregunta: "Restar de 7 en 7 desde 100",          encabezado: "Atención y Cálculo"    },
+  { id: 11, pregunta: "Recuerde las palabras",               encabezado: "Memoria"               },
+  { id: 12, pregunta: '"Ni sí, ni no, ni pero"',             encabezado: "Repetición"            },
+  { id: 13, pregunta: "Tome, doble y ponga en el suelo",     encabezado: "Órdenes"               },
+  { id: 14, pregunta: "¿Qué objeto es?",                     encabezado: "Lenguaje"              },
+  { id: 15, pregunta: "¿Qué objeto es?",                     encabezado: "Lenguaje"              },
+  { id: 16, pregunta: "Lea y haga lo indicado",              encabezado: "Lectura"               },
+];
 
 export default function MiniMentalScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
-  const [puntajeConocimiento, setPuntajeConocimiento] = useState(0);
+  const [respuestas,       setRespuestas]       = useState({});
+  const [palabrasMemoria,  setPalabrasMemoria]  = useState({ casa: false, arbol: false, perro: false });
+  const [palabrasRecuerdo, setPalabrasRecuerdo] = useState({ casa: false, arbol: false, perro: false });
+  const [numeros,          setNumeros]          = useState({ 93: false, 86: false, 79: false, 72: false, 65: false });
+  const [acciones,         setAcciones]         = useState({ tomar: false, doblar: false, tirar: false });
 
-  const { width } = useWindowDimensions();
-  const isMobile = width < 600;
+  const toggle = (setter) => (key) =>
+    setter((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const handleGuardar = () => {
+  const toggleRespuesta  = (id)     => setRespuestas((prev)  => ({ ...prev, [id]: !prev[id] }));
+  const togglePalabra    = toggle(setPalabrasMemoria);
+  const toggleRecuerdo   = toggle(setPalabrasRecuerdo);
+  const toggleNumero     = toggle(setNumeros);
+  const toggleAccion     = toggle(setAcciones);
+
+  const puntajeOrientacion = Object.values(respuestas).filter(Boolean).length;
+  const puntajeMemoria     = Object.values(palabrasMemoria).filter(Boolean).length;
+  const puntajeRecuerdo    = Object.values(palabrasRecuerdo).filter(Boolean).length;
+  const puntajeNumeros     = Object.values(numeros).filter(Boolean).length;
+  const puntajeAcciones    = Object.values(acciones).filter(Boolean).length;
+
+  const puntaje =
+    puntajeOrientacion +
+    puntajeMemoria     +
+    puntajeRecuerdo    +
+    puntajeNumeros     +
+    puntajeAcciones;
+
+  const interpretacion =
+    puntaje >= 27 ? "Normal"                      :
+    puntaje >= 21 ? "Deterioro leve"              :
+    puntaje >= 11 ? "Deterioro moderado"          :
+                    "Deterioro severo";
+
+  const guardarEvaluacion = () => {
     if (!pacienteActual) {
       Alert.alert("Error", "No hay paciente seleccionado");
       return;
     }
 
     const nuevaPrueba = {
-      tipo: "Mini-Mental",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: Number(puntajeConocimiento),
+      tipo:   "Mini Mental",
+      fecha:  new Date().toLocaleDateString(),
+      puntaje,
       detalle: [
-        `Puntaje Conocimientos: ${puntajeConocimiento}`,
-        `Interpretación: ${
-          puntajeConocimiento <= 24
-            ? "Probable deterioro cognitivo"
-            : "Sin deterioro cognitivo"
-        }`,
+        `Orientación: ${puntajeOrientacion}/8`,
+        `Memoria inmediata: ${puntajeMemoria}/3`,
+        `Atención y cálculo: ${puntajeNumeros}/5`,
+        `Recuerdo diferido: ${puntajeRecuerdo}/3`,
+        `Lenguaje y órdenes: ${puntajeAcciones + puntajeOrientacion}/11`,
+        `Interpretación: ${interpretacion}`,
       ],
     };
 
-    const pruebasActuales = pacienteActual.pruebas || [];
+    const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
+      ? [...pacienteActual.pruebas, nuevaPrueba]
+      : [nuevaPrueba];
 
-    const pacienteActualizado = {
+    setPacienteActual({
       ...pacienteActual,
-      pruebas: [...pruebasActuales, nuevaPrueba],
-    };
+      pruebas: pruebasActualizadas,
+    });
 
-    setPacienteActual(pacienteActualizado);
-
-    Alert.alert("Éxito", "Mini-Mental guardado correctamente");
-
-    setScreen("Resumen");
+    Alert.alert(
+      "Evaluación guardada",
+      `Puntaje total: ${puntaje}/27 — ${interpretacion}`,
+      [{ text: "OK", onPress: () => setScreen("Agendar Cita") }]
+    );
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      {/* Barra de puntaje fija */}
+      <View style={styles.scoreBar}>
+        <Text style={styles.scoreText}>
+          Puntaje: {puntaje} / 27 — {interpretacion}
+        </Text>
+      </View>
 
-        <View style={styles.headerCard}>
-          <Text style={{ fontSize: 28 }}>🧠</Text>
-          <View style={{ marginLeft: 15 }}>
-            <Text style={styles.title}>Evaluación Mini Mental</Text>
-            <Text style={styles.subtitle}>
-              Evaluación de deterioro cognitivo
-            </Text>
+      <ScrollView style={styles.container}>
+        <Text style={styles.title}>Evaluación Mini Mental</Text>
+
+        {preguntas.map((item) => (
+          <View key={item.id} style={styles.card}>
+            <Text style={styles.sectionTitle}>{item.encabezado}</Text>
+            <Text style={styles.question}>{item.pregunta}</Text>
+
+            {/* Memoria inmediata */}
+            {item.id === 9 ? (
+              ["casa", "arbol", "perro"].map((p) => (
+                <CheckRow
+                  key={p}
+                  label={p}
+                  checked={palabrasMemoria[p]}
+                  onPress={() => togglePalabra(p)}
+                />
+              ))
+
+            /* Atención y cálculo */
+            ) : item.id === 10 ? (
+              [93, 86, 79, 72, 65].map((n) => (
+                <CheckRow
+                  key={n}
+                  label={String(n)}
+                  checked={numeros[n]}
+                  onPress={() => toggleNumero(n)}
+                />
+              ))
+
+            /* Recuerdo diferido */
+            ) : item.id === 11 ? (
+              ["casa", "arbol", "perro"].map((p) => (
+                <CheckRow
+                  key={p}
+                  label={p}
+                  checked={palabrasRecuerdo[p]}
+                  onPress={() => toggleRecuerdo(p)}
+                />
+              ))
+
+            /* Órdenes motoras */
+            ) : item.id === 13 ? (
+              ["tomar", "doblar", "tirar"].map((a) => (
+                <CheckRow
+                  key={a}
+                  label={a}
+                  checked={acciones[a]}
+                  onPress={() => toggleAccion(a)}
+                />
+              ))
+
+            /* Lenguaje con imagen – reloj */
+            ) : item.id === 14 ? (
+              <>
+                <Image
+                  source={require("../assets/images/reloj.jpg")}
+                  style={styles.testImage}
+                />
+                <CheckRow
+                  label="Correcto"
+                  checked={!!respuestas[item.id]}
+                  onPress={() => toggleRespuesta(item.id)}
+                />
+              </>
+
+            /* Lenguaje con imagen – lápiz */
+            ) : item.id === 15 ? (
+              <>
+                <Image
+                  source={require("../assets/images/lapiz2.png")}
+                  style={styles.testImage}
+                />
+                <CheckRow
+                  label="Correcto"
+                  checked={!!respuestas[item.id]}
+                  onPress={() => toggleRespuesta(item.id)}
+                />
+              </>
+
+            /* Lectura con imagen */
+            ) : item.id === 16 ? (
+              <>
+                <Image
+                  source={require("../assets/images/cierralosojos.png")}
+                  style={styles.testImage}
+                />
+                <CheckRow
+                  label="Correcto"
+                  checked={!!respuestas[item.id]}
+                  onPress={() => toggleRespuesta(item.id)}
+                />
+              </>
+
+            /* Resto de preguntas */
+            ) : (
+              <CheckRow
+                label="Respuesta correcta"
+                checked={!!respuestas[item.id]}
+                onPress={() => toggleRespuesta(item.id)}
+              />
+            )}
           </View>
-        </View>
+        ))}
 
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Conocimientos</Text>
-
-          <Text style={styles.instructionText}>
-            Puntaje total obtenido (0 - 30)
-          </Text>
-
+        <View style={styles.footer}>
           <TouchableOpacity
-            style={styles.scoreBox}
-            onPress={() =>
-              setPuntajeConocimiento(
-                puntajeConocimiento < 30
-                  ? puntajeConocimiento + 1
-                  : 0
-              )
-            }
+            style={styles.saveButton}
+            onPress={guardarEvaluacion}
           >
-            <Text style={styles.scoreText}>
-              {puntajeConocimiento}
-            </Text>
-            <Text style={{ fontSize: 12, color: "#666" }}>
-              (Toque para aumentar)
-            </Text>
-          </TouchableOpacity>
-
-          <Text style={styles.interpretacion}>
-            {puntajeConocimiento <= 24
-              ? "Probable deterioro cognitivo"
-              : "Sin deterioro cognitivo"}
-          </Text>
-        </View>
-
-        <View
-          style={[
-            styles.footer,
-            {
-              flexDirection: isMobile ? "column" : "row",
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.btnCancel}
-            onPress={() => setScreen("CognitivoMenu")}
-          >
-            <Text style={styles.btnTextCancel}>Cancelar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.btnSubmit}
-            onPress={handleGuardar}
-          >
-            <Text style={styles.btnTextSubmit}>
-              Registrar Puntuación
+            <Text style={styles.saveButtonText}>
+              GUARDAR Y AGENDAR CITA
             </Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+function CheckRow({ label, checked, onPress }) {
+  return (
+    <TouchableOpacity style={styles.checkboxRow} onPress={onPress}>
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]} />
+      <Text>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F8F9FA" },
-  container: { flex: 1 },
-  contentContainer: { padding: 20 },
-
-  headerCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 20,
-    elevation: 2,
-  },
-
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#001D3D",
-  },
-
-  subtitle: {
-    fontSize: 13,
-    color: "#666",
-  },
-
-  sectionCard: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-
-  instructionText: {
-    fontSize: 15,
-    marginBottom: 10,
-  },
-
-  scoreBox: {
-    backgroundColor: "#E8F0FE",
-    padding: 30,
-    borderRadius: 12,
-    alignItems: "center",
-    marginVertical: 15,
-  },
-
-  scoreText: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "#001D3D",
-  },
-
-  interpretacion: {
-    textAlign: "center",
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-
-  footer: {
-    gap: 12,
-  },
-
-  btnCancel: {
-    paddingVertical: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-
-  btnSubmit: {
-    backgroundColor: "#000814",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-  btnTextCancel: {
-    fontWeight: "700",
-  },
-
-  btnTextSubmit: {
-    color: "#FFF",
-    fontWeight: "700",
-  },
+  safeArea:        { flex: 1, backgroundColor: "#F8F9FA" },
+  container:       { flex: 1, padding: 16 },
+  scoreBar:        { padding: 16, backgroundColor: "#001D3D" },
+  scoreText:       { color: "#FFF", fontWeight: "bold", fontSize: 18 },
+  title:           { fontSize: 22, fontWeight: "bold", marginVertical: 20 },
+  card:            { backgroundColor: "#FFF", padding: 16, borderRadius: 12, marginBottom: 16 },
+  sectionTitle:    { fontWeight: "bold", fontSize: 16, marginBottom: 10 },
+  question:        { fontSize: 15, marginBottom: 12 },
+  checkboxRow:     { flexDirection: "row", alignItems: "center", marginVertical: 6, gap: 10 },
+  checkbox:        { width: 22, height: 22, borderWidth: 2, borderColor: "#999", borderRadius: 5 },
+  checkboxChecked: { backgroundColor: "#2ECC71", borderColor: "#2ECC71" },
+  testImage:       { width: 120, height: 120, alignSelf: "center", marginVertical: 10 },
+  footer:          { marginTop: 20, marginBottom: 30 },
+  saveButton:      { backgroundColor: "#1565C0", paddingVertical: 15, borderRadius: 12, alignItems: "center" },
+  saveButtonText:  { color: "#FFF", fontWeight: "bold", fontSize: 16 },
 });

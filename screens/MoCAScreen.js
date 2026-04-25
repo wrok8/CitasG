@@ -1,14 +1,17 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Image,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
+  TouchableOpacity,
   View,
   Alert,
-  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
+import { Accelerometer } from "expo-sensors";
+
 import { FormField } from "../components/FormField";
 import { FormSection } from "../components/FormSection";
 
@@ -17,200 +20,653 @@ export default function MoCAScreen({
   pacienteActual,
   setPacienteActual,
 }) {
-  const [escolaridad, setEscolaridad] = useState("");
+  const [isAccelActive, setIsAccelActive] = useState(false);
+  const [instruccionActual, setInstruccionActual] = useState(0);
+  const [tiempoInicio, setTiempoInicio] = useState(0);
+  const [resultadoEjes, setResultadoEjes] = useState("");
 
-  // VISUOESPACIAL
-  const [trazado, setTrazado] = useState("");
-  const [cubo, setCubo] = useState("");
-  const [relojContorno, setRelojContorno] = useState("");
-  const [relojNumeros, setRelojNumeros] = useState("");
-  const [relojAgujas, setRelojAgujas] = useState("");
+  const [puntos, setPuntos] = useState({});
+  const [puntosResta, setPuntosResta] = useState(0);
 
-  // IDENTIFICACION
-  const [animal1, setAnimal1] = useState("");
-  const [animal2, setAnimal2] = useState("");
-  const [animal3, setAnimal3] = useState("");
+  const togglePunto = (id) => {
+    setPuntos((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
-  // ATENCION
-  const [digitoDirecto, setDigitoDirecto] = useState("");
-  const [digitoInverso, setDigitoInverso] = useState("");
-  const [letraA, setLetraA] = useState("");
-  const [restasCorrectas, setRestasCorrectas] = useState("");
+  const escolaridad = parseInt(
+    pacienteActual?.escolaridad || 0
+  );
 
-  // LENGUAJE
-  const [frase1, setFrase1] = useState("");
-  const [frase2, setFrase2] = useState("");
-  const [fluidezF, setFluidezF] = useState("");
+  const rawScore = Object.entries(puntos).filter(
+    ([key, val]) =>
+      !key.startsWith("att_calc_") && val
+  ).length;
 
-  // ABSTRACCION
-  const [abstraccion1, setAbstraccion1] = useState("");
-  const [abstraccion2, setAbstraccion2] = useState("");
+  const adjustment =
+    escolaridad >= 12 ? 1 : 0;
 
-  // RECUERDO
-  const [recuerdo, setRecuerdo] = useState("");
+  const totalScore = Math.min(
+    30,
+    rawScore + puntosResta + adjustment
+  );
 
-  // ORIENTACION
-  const [orientacion, setOrientacion] = useState("");
-
-  const total = useMemo(() => {
-    let score = 0;
-
-    // Visuoespacial (5)
-    score += Number(trazado || 0);
-    score += Number(cubo || 0);
-    score += Number(relojContorno || 0);
-    score += Number(relojNumeros || 0);
-    score += Number(relojAgujas || 0);
-
-    // Identificacion (3)
-    score += Number(animal1 || 0);
-    score += Number(animal2 || 0);
-    score += Number(animal3 || 0);
-
-    // Atención
-    score += Number(digitoDirecto || 0);
-    score += Number(digitoInverso || 0);
-    score += Number(letraA || 0);
-
-    const restas = Number(restasCorrectas || 0);
-    if (restas >= 4) score += 3;
-    else if (restas >= 2) score += 2;
-    else if (restas === 1) score += 1;
-
-    // Lenguaje
-    score += Number(frase1 || 0);
-    score += Number(frase2 || 0);
-    if (Number(fluidezF) > 11) score += 1;
-
-    // Abstraccion
-    score += Number(abstraccion1 || 0);
-    score += Number(abstraccion2 || 0);
-
-    // Recuerdo
-    score += Number(recuerdo || 0);
-
-    // Orientacion
-    score += Number(orientacion || 0);
-
-    // Escolaridad
-    if (Number(escolaridad) <= 12 && escolaridad !== "") {
-      score += 1;
+  const getInterpretation = () => {
+    if (totalScore >= 26) {
+      return {
+        text: "Se considera normal",
+        color: "#5CB85C",
+      };
     }
 
-    return score;
-  }, [
-    trazado,
-    cubo,
-    relojContorno,
-    relojNumeros,
-    relojAgujas,
-    animal1,
-    animal2,
-    animal3,
-    digitoDirecto,
-    digitoInverso,
-    letraA,
-    restasCorrectas,
-    frase1,
-    frase2,
-    fluidezF,
-    abstraccion1,
-    abstraccion2,
-    recuerdo,
-    orientacion,
-    escolaridad,
-  ]);
+    return {
+      text: "Probable trastorno cognitivo",
+      color: "#D9534F",
+    };
+  };
 
-  const handleGuardar = () => {
+  const interpretation =
+    getInterpretation();
+
+  useEffect(() => {
+  let sub;
+
+  if (isAccelActive) {
+    Accelerometer.setUpdateInterval(200);
+
+    sub = Accelerometer.addListener((data) => {
+      console.log("Sensor:", data);
+
+      // Paso 1 → inclinar a la izquierda
+      if (
+        instruccionActual === 1 &&
+        data.x > 0.5
+      ) {
+        setInstruccionActual(2);
+      }
+
+      // Paso 2 → inclinar a la derecha
+      else if (
+        instruccionActual === 2 &&
+        data.x < -0.5
+      ) {
+        setInstruccionActual(3);
+      }
+
+      // Paso 3 → pantalla hacia abajo
+      else if (
+        instruccionActual === 3 &&
+        data.z < -0.5
+      ) {
+        const tiempo = (
+          (Date.now() - tiempoInicio) /
+          1000
+        ).toFixed(1);
+
+        setResultadoEjes(
+          `Prueba completada correctamente en ${tiempo} segundos`
+        );
+
+        setInstruccionActual(4);
+        setIsAccelActive(false);
+      }
+    });
+  }
+
+  return () => {
+    if (sub) sub.remove();
+  };
+}, [
+  isAccelActive,
+  instruccionActual,
+  tiempoInicio,
+]);
+
+  const iniciarPruebaEjes = () => {
+    setInstruccionActual(1);
+    setTiempoInicio(Date.now());
+    setIsAccelActive(true);
+    setResultadoEjes("");
+  };
+
+  const guardarPrueba = () => {
     if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente activo");
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
       return;
     }
 
     const nuevaPrueba = {
       tipo: "MoCA",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: total,
-      detalle: [`Puntaje total: ${total}/30`],
+      fecha:
+        new Date().toLocaleDateString(),
+      puntaje: totalScore,
+      detalle: [
+        "Puntaje bruto: " + rawScore,
+        "Restas seriadas: " +
+          puntosResta,
+        "Ajuste escolaridad: " +
+          adjustment,
+        "Resultado: " +
+          interpretation.text,
+      ],
     };
+
+    const pruebasActualizadas =
+      Array.isArray(
+        pacienteActual.pruebas
+      )
+        ? [
+            ...pacienteActual.pruebas,
+            nuevaPrueba,
+          ]
+        : [nuevaPrueba];
 
     setPacienteActual({
       ...pacienteActual,
-      pruebas: [
-        ...(pacienteActual.pruebas || []),
-        nuevaPrueba,
-      ],
+      pruebas: pruebasActualizadas,
     });
 
-    Alert.alert("Éxito", "MoCA guardado correctamente");
+    Alert.alert(
+      "Evaluación guardada",
+      `Puntaje total: ${totalScore}/30`
+    );
+
     setScreen("Resumen");
   };
 
+  const ScoreSwitch = ({
+    label,
+    id,
+  }) => (
+    <View style={styles.scoreRow}>
+      <Text style={styles.scoreLabel}>
+        {label}
+      </Text>
+
+      <Switch
+        value={!!puntos[id]}
+        onValueChange={() =>
+          togglePunto(id)
+        }
+      />
+    </View>
+  );
+
+  const ScoreOption = ({
+    label,
+    value,
+  }) => {
+    const isSelected =
+      puntosResta === value;
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.scoreRow,
+          isSelected &&
+            styles.selectedOption,
+        ]}
+        onPress={() =>
+          setPuntosResta(
+            isSelected ? 0 : value
+          )
+        }
+      >
+        <Text style={styles.scoreLabel}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <StatusBar style="dark" />
-      <ScrollView style={{ padding: 20 }}>
+    <SafeAreaView
+      style={styles.safeArea}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={
+          styles.contentContainer
+        }
+      >
+        <Text style={styles.title}>
+          Evaluación MoCA
+        </Text>
 
-        <Text style={styles.title}>MoCA - 30 puntos</Text>
+       
+       <FormSection
+  title="Prueba de ejes"
+  subtitle="Sensor interactivo"
+>
+  <View
+    style={{
+      backgroundColor: "#F1F3F5",
+      padding: 15,
+      borderRadius: 10,
+    }}
+  >
+    <Text
+      style={{
+        marginBottom: 10,
+        fontSize: 16,
+      }}
+    >
+      Pida al paciente que sostenga el dispositivo y siga las instrucciones.
+    </Text>
 
-        <FormSection title="Visuoespacial / Ejecutiva (5)">
-          <FormField label="Trazado (0-1)" keyboardType="numeric" value={trazado} onChangeText={setTrazado}/>
-          <FormField label="Cubo (0-1)" keyboardType="numeric" value={cubo} onChangeText={setCubo}/>
-          <FormField label="Reloj Contorno (0-1)" keyboardType="numeric" value={relojContorno} onChangeText={setRelojContorno}/>
-          <FormField label="Reloj Números (0-1)" keyboardType="numeric" value={relojNumeros} onChangeText={setRelojNumeros}/>
-          <FormField label="Reloj Agujas (0-1)" keyboardType="numeric" value={relojAgujas} onChangeText={setRelojAgujas}/>
-        </FormSection>
+    {instruccionActual === 0 && (
+      <TouchableOpacity
+        style={styles.btnAction}
+        onPress={iniciarPruebaEjes}
+      >
+        <Text style={styles.btnTextAction}>
+          Iniciar prueba
+        </Text>
+      </TouchableOpacity>
+    )}
 
-        <FormSection title="Identificación (3)">
-          <FormField label="Animal 1 (0-1)" keyboardType="numeric" value={animal1} onChangeText={setAnimal1}/>
-          <FormField label="Animal 2 (0-1)" keyboardType="numeric" value={animal2} onChangeText={setAnimal2}/>
-          <FormField label="Animal 3 (0-1)" keyboardType="numeric" value={animal3} onChangeText={setAnimal3}/>
-        </FormSection>
+    {instruccionActual === 1 && (
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "bold",
+          textAlign: "center",
+          marginVertical: 10,
+        }}
+      >
+        Incline el dispositivo a la IZQUIERDA
+      </Text>
+    )}
 
-        <FormSection title="Atención (6)">
-          <FormField label="Dígitos Directo (0-1)" keyboardType="numeric" value={digitoDirecto} onChangeText={setDigitoDirecto}/>
-          <FormField label="Dígitos Inverso (0-1)" keyboardType="numeric" value={digitoInverso} onChangeText={setDigitoInverso}/>
-          <FormField label="Letra A (0-1)" keyboardType="numeric" value={letraA} onChangeText={setLetraA}/>
-          <FormField label="Restas correctas (0-5)" keyboardType="numeric" value={restasCorrectas} onChangeText={setRestasCorrectas}/>
-        </FormSection>
+    {instruccionActual === 2 && (
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "bold",
+          textAlign: "center",
+          marginVertical: 10,
+        }}
+      >
+        Ahora inclínelo a la DERECHA
+      </Text>
+    )}
 
-        <FormSection title="Lenguaje (3)">
-          <FormField label="Frase 1 (0-1)" keyboardType="numeric" value={frase1} onChangeText={setFrase1}/>
-          <FormField label="Frase 2 (0-1)" keyboardType="numeric" value={frase2} onChangeText={setFrase2}/>
-          <FormField label="Palabras con F (cantidad)" keyboardType="numeric" value={fluidezF} onChangeText={setFluidezF}/>
-        </FormSection>
+    {instruccionActual === 3 && (
+      <Text
+        style={{
+          fontSize: 18,
+          fontWeight: "bold",
+          textAlign: "center",
+          marginVertical: 10,
+        }}
+      >
+        Ahora coloque la pantalla HACIA ABAJO
+      </Text>
+    )}
 
-        <FormSection title="Abstracción (2)">
-          <FormField label="Semejanza 1 (0-1)" keyboardType="numeric" value={abstraccion1} onChangeText={setAbstraccion1}/>
-          <FormField label="Semejanza 2 (0-1)" keyboardType="numeric" value={abstraccion2} onChangeText={setAbstraccion2}/>
-        </FormSection>
+    {instruccionActual === 4 && (
+      <View>
+        <Text
+          style={{
+            fontSize: 18,
+            color: "#5CB85C",
+            fontWeight: "bold",
+            textAlign: "center",
+            marginVertical: 10,
+          }}
+        >
+          {resultadoEjes}
+        </Text>
 
-        <FormSection title="Recuerdo Diferido (5)">
-          <FormField label="Palabras recordadas (0-5)" keyboardType="numeric" value={recuerdo} onChangeText={setRecuerdo}/>
-        </FormSection>
-
-        <FormSection title="Orientación (6)">
-          <FormField label="Respuestas correctas (0-6)" keyboardType="numeric" value={orientacion} onChangeText={setOrientacion}/>
-        </FormSection>
-
-        <View style={styles.totalBox}>
-          <Text style={styles.totalText}>Total: {total}/30</Text>
-        </View>
-
-        <TouchableOpacity style={styles.btn} onPress={handleGuardar}>
-          <Text style={{ color: "#FFF", fontWeight: "bold" }}>
-            Guardar Evaluación
+        <TouchableOpacity
+          style={styles.btnAction}
+          onPress={iniciarPruebaEjes}
+        >
+          <Text style={styles.btnTextAction}>
+            Reintentar prueba
           </Text>
         </TouchableOpacity>
+      </View>
+    )}
+  </View>
+  </FormSection>
 
+        <FormSection
+          title="Identificación"
+          subtitle="3 puntos"
+        >
+          <View
+            style={{
+              flexDirection: "row",
+            }}
+          >
+            <View
+              style={{ flex: 1 }}
+            >
+              <Image
+                source={require("../assets/leon.jpg")}
+                style={
+                  styles.imageAnimal
+                }
+              />
+              <ScoreSwitch
+                label="León"
+                id="lion"
+              />
+            </View>
+
+            <View
+              style={{ flex: 1 }}
+            >
+              <Image
+                source={require("../assets/rinoceronte.jpg")}
+                style={
+                  styles.imageAnimal
+                }
+              />
+              <ScoreSwitch
+                label="Rinoceronte"
+                id="rhino"
+              />
+            </View>
+
+            <View
+              style={{ flex: 1 }}
+            >
+              <Image
+                source={require("../assets/camello.jpg")}
+                style={
+                  styles.imageAnimal
+                }
+              />
+              <ScoreSwitch
+                label="Camello"
+                id="camel"
+              />
+            </View>
+          </View>
+        </FormSection>
+
+        <FormSection
+          title="Atención"
+          subtitle="6 puntos"
+        >
+          <ScoreSwitch
+            label="Secuencia directa"
+            id="dir"
+          />
+
+          <ScoreSwitch
+            label="Secuencia inversa"
+            id="inv"
+          />
+
+          <ScoreSwitch
+            label="Serie letras"
+            id="letters"
+          />
+
+          <ScoreOption
+            label="4-5 restas correctas (3 pts)"
+            value={3}
+          />
+
+          <ScoreOption
+            label="2-3 restas correctas (2 pts)"
+            value={2}
+          />
+
+          <ScoreOption
+            label="1 correcta (1 pt)"
+            value={1}
+          />
+        </FormSection>
+
+        <FormSection
+          title="Orientación"
+          subtitle="6 puntos"
+        >
+          <ScoreSwitch
+            label="Fecha"
+            id="fecha"
+          />
+          <ScoreSwitch
+            label="Mes"
+            id="mes"
+          />
+          <ScoreSwitch
+            label="Año"
+            id="anio"
+          />
+          <ScoreSwitch
+            label="Lugar"
+            id="lugar"
+          />
+          <ScoreSwitch
+            label="Ciudad"
+            id="ciudad"
+          />
+          <ScoreSwitch
+            label="Día"
+            id="dia"
+          />
+        </FormSection>
+
+        <FormSection
+        title="Visuoespacial / Ejecutiva"
+        subtitle="5 puntos"
+      >
+        <ScoreSwitch
+          label="Conectar puntos"
+          id="visuo_1"
+        />
+
+        <ScoreSwitch
+          label="Copiar cubo"
+          id="visuo_2"
+        />
+
+        <ScoreSwitch
+          label="Reloj: contorno"
+          id="visuo_3"
+        />
+
+        <ScoreSwitch
+          label="Reloj: números"
+          id="visuo_4"
+        />
+
+        <ScoreSwitch
+          label="Reloj: manecillas"
+          id="visuo_5"
+        />
+      </FormSection>
+
+      <FormSection
+        title="Lenguaje"
+        subtitle="3 puntos"
+      >
+        <ScoreSwitch
+          label="Frase 1 correcta"
+          id="lang_1"
+        />
+
+        <ScoreSwitch
+          label="Frase 2 correcta"
+          id="lang_2"
+        />
+
+        <ScoreSwitch
+          label="Fluidez verbal"
+          id="lang_3"
+        />
+      </FormSection>
+
+      <FormSection
+        title="Abstracción"
+        subtitle="2 puntos"
+      >
+        <ScoreSwitch
+          label="Tren / bicicleta"
+          id="abs_1"
+        />
+
+        <ScoreSwitch
+          label="Reloj / regla"
+          id="abs_2"
+        />
+      </FormSection>
+
+      <FormSection
+  title="Recuerdo diferido"
+  subtitle="5 puntos"
+>
+  <ScoreSwitch
+    label="Rostro"
+    id="rec_1"
+  />
+
+  <ScoreSwitch
+    label="Seda"
+    id="rec_2"
+  />
+
+  <ScoreSwitch
+    label="Iglesia"
+    id="rec_3"
+  />
+
+  <ScoreSwitch
+    label="Clavel"
+    id="rec_4"
+  />
+
+  <ScoreSwitch
+    label="Rojo"
+    id="rec_5"
+  />
+</FormSection>
+
+        <FormSection
+          title="Resultado Final"
+          subtitle=""
+        >
+          <Text
+            style={styles.scoreText}
+          >
+            {totalScore} / 30
+          </Text>
+
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor:
+                  interpretation.color,
+              },
+            ]}
+          >
+            <Text
+              style={
+                styles.badgeText
+              }
+            >
+              {
+                interpretation.text
+              }
+            </Text>
+          </View>
+        </FormSection>
+
+        <TouchableOpacity
+          style={styles.btnSubmit}
+          onPress={guardarPrueba}
+        >
+          <Text
+            style={
+              styles.btnTextSubmit
+            }
+          >
+            GUARDAR EVALUACIÓN
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 20 },
-  totalBox: { marginTop: 20, padding: 20, backgroundColor: "#E7F0FF", borderRadius: 10, alignItems: "center" },
-  totalText: { fontSize: 18, fontWeight: "bold" },
-  btn: { marginTop: 20, backgroundColor: "#000814", padding: 15, borderRadius: 10, alignItems: "center" }
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  scoreRow: {
+    flexDirection: "row",
+    justifyContent:
+      "space-between",
+    marginVertical: 5,
+  },
+  scoreLabel: {
+    flex: 1,
+  },
+  btnAction: {
+    backgroundColor: "#005f73",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  btnTextAction: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  btnSubmit: {
+    backgroundColor: "#1565C0",
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  btnTextSubmit: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  scoreText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  badge: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  selectedOption: {
+    backgroundColor: "#E7F0FF",
+  },
+  imageAnimal: {
+    width: "100%",
+    height: 100,
+    resizeMode: "contain",
+  },
 });
