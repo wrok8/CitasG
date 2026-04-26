@@ -19,6 +19,7 @@ import DetailScreen from "./screens/DetailScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import RegisterPatientScreen from "./screens/RegisterPatientScreen";
+import ControlCitasScreen from "./screens/ControlCitasScreen";
 import ResumenScreen from "./screens/ResumenScreen";
 import ListaPacientesScreen from "./screens/ListaPacientesScreen";
 import EvaluacionesScreen from "./screens/EvaluacionesScreen";
@@ -95,6 +96,8 @@ function MainApp() {
 
       case "Perfil":
         return <ProfileScreen />;
+      case "ControlCitas":
+        return <ControlCitasScreen setScreen={setScreen} pacienteActual={pacienteActual} />;
 
       case "Configuración":
         return <SettingsScreen />;
