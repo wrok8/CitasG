@@ -131,52 +131,55 @@ export default function MoCAScreen({
   };
 
   const guardarPrueba = () => {
-    if (!pacienteActual) {
-      Alert.alert(
-        "Error",
-        "No hay paciente seleccionado"
-      );
-      return;
-    }
-
-    const nuevaPrueba = {
-      tipo: "MoCA",
-      fecha:
-        new Date().toLocaleDateString(),
-      puntaje: totalScore,
-      detalle: [
-        "Puntaje bruto: " + rawScore,
-        "Restas seriadas: " +
-          puntosResta,
-        "Ajuste escolaridad: " +
-          adjustment,
-        "Resultado: " +
-          interpretation.text,
-      ],
-    };
-
-    const pruebasActualizadas =
-      Array.isArray(
-        pacienteActual.pruebas
-      )
-        ? [
-            ...pacienteActual.pruebas,
-            nuevaPrueba,
-          ]
-        : [nuevaPrueba];
-
-    setPacienteActual({
-      ...pacienteActual,
-      pruebas: pruebasActualizadas,
-    });
-
+  if (!pacienteActual) {
     Alert.alert(
-      "Evaluación guardada",
-      `Puntaje total: ${totalScore}/30`
+      "Error",
+      "No hay paciente seleccionado"
     );
+    return;
+  }
 
-    setScreen("Resumen");
+  const nuevaPrueba = {
+    tipo: "MoCA",
+    fecha: new Date().toLocaleDateString(),
+    puntaje: totalScore,
+    maximo: 30,
+    detalle: [
+      `Puntaje bruto: ${rawScore}`,
+      `Restas seriadas: ${puntosResta}`,
+      `Ajuste escolaridad: ${adjustment}`,
+      `Resultado: ${interpretation.text}`,
+    ],
   };
+
+  const pruebasActualizadas = Array.isArray(
+    pacienteActual.pruebas
+  )
+    ? [...pacienteActual.pruebas, nuevaPrueba]
+    : [nuevaPrueba];
+
+  const pacienteActualizado = {
+    ...pacienteActual,
+    pruebas: pruebasActualizadas,
+  };
+
+  // Guardar paciente actualizado
+  setPacienteActual(pacienteActualizado);
+
+  Alert.alert(
+    "Evaluación guardada",
+    `Puntaje total: ${totalScore}/30`,
+    [
+      {
+        text: "OK",
+        onPress: () => {
+          // Regresar a agenda
+          setScreen("Agendar Cita");
+        },
+      },
+    ]
+  );
+};
 
   const ScoreSwitch = ({
     label,
