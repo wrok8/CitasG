@@ -36,7 +36,6 @@ export default function CustomDrawer({
       <Item label="Inicio" />
       <Item label="Agregar Personal" />
       <Item label="Agendar Cita" />
-      <Item label="Control de Citas" />
       <Item label="Lista de Pacientes" />
       <Item label="Evaluaciones" />
       <Item label="Perfil" />

@@ -1,518 +1,299 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
-  TextInput,
-  ScrollView,
+  StyleSheet,
   TouchableOpacity,
-  Platform,
-  Button,
+  ScrollView,
   Alert,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { Accelerometer } from "expo-sensors";
-
-const Checkbox = ({ label, selected, onPress }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={{ flexDirection: "row", alignItems: "center", marginVertical: 4 }}
-  >
-    <View
-      style={{
-        width: 20,
-        height: 20,
-        borderWidth: 1,
-        marginRight: 8,
-        backgroundColor: selected ? "#2563eb" : "#fff",
-      }}
-    />
-    <Text>{label}</Text>
-  </TouchableOpacity>
-);
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function OARSScreen({
+  setScreen,
   pacienteActual,
   setPacienteActual,
-  setScreen,
 }) {
-  const initialState = {
-    nombre: "",
-    edad: "",
-    sexo: "",
-    fecha: "",
-    estadoCivil: "",
-    viveEsposo: "",
-    viveCon: [],
-    personasVive: "",
-    visitas: "",
-    conocidos: "",
-    telefono: "",
-    tiempoConOtros: "",
-    confianza: "",
-    confianzaTexto: "",
-    soledad: "",
-    frecuenciaFamilia: "",
-    ayuda: "",
-    tipoCuidado: "",
-    cuidadorNombre: "",
-    cuidadorRelacion: "",
-    convivencia: "",
-    evaluador: "",
+  // ── Context ────────────────────────────────────────────────────────────────
+  const { citaEnProgreso, guardarResultadoPrueba } = useContext(EvaluationContext);
+
+  // ── Estados ────────────────────────────────────────────────────────────────
+  const [completado, setCompletado] = useState(false);
+  const [puntajes, setPuntajes] = useState({
+    socialResources:     0,
+    economicResources:   0,
+    mentalHealth:        0,
+    physicalHealth:      0,
+    capacityForSelfCare: 0,
+  });
+
+  // ── Preguntas del OARS ─────────────────────────────────────────────────────
+  const preguntas = [
+    {
+      id: "social",
+      titulo: "Recursos Sociales",
+      descripcion: "¿Cuántas personas allegadas puede visitar o llamar?",
+      campo: "socialResources",
+    },
+    {
+      id: "economic",
+      titulo: "Recursos Económicos",
+      descripcion: "¿Tiene ingresos suficientes para sus necesidades?",
+      campo: "economicResources",
+    },
+    {
+      id: "mental",
+      titulo: "Salud Mental",
+      descripcion: "¿Se siente deprimido o ansioso?",
+      campo: "mentalHealth",
+    },
+    {
+      id: "physical",
+      titulo: "Salud Física",
+      descripcion: "¿Tiene problemas de movilidad?",
+      campo: "physicalHealth",
+    },
+    {
+      id: "selfcare",
+      titulo: "Capacidad de Autocuidado",
+      descripcion: "¿Puede realizar sus actividades diarias?",
+      campo: "capacityForSelfCare",
+    },
+  ];
+
+  // ── Actualizar puntaje individual ──────────────────────────────────────────
+  const actualizarPuntaje = (campo, valor) => {
+    setPuntajes((prev) => ({
+      ...prev,
+      [campo]: valor,
+    }));
   };
 
-  const [form, setForm] = useState(initialState);
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const shakeTimeout = useRef(null);
-
-  const setField = (key, value) =>
-    setForm({ ...form, [key]: value });
-
-  const toggleMulti = (key, value) => {
-    const arr = form[key];
-    if (arr.includes(value)) {
-      setField(
-        key,
-        arr.filter((v) => v !== value)
-      );
-    } else {
-      setField(key, [...arr, value]);
-    }
-  };
-
-  const onChangeFecha = (event, selectedDate) => {
-    setShowDatePicker(Platform.OS === "ios");
-    if (selectedDate) {
-      const formatted = selectedDate.toLocaleDateString();
-      setField("fecha", formatted);
-    }
-  };
-
-  // FUNCIÓN PARA LIMPIAR RESPUESTAS
-  const limpiarFormulario = () => {
-    setForm(initialState);
-    Alert.alert("Formulario reiniciado", "Agitaste el teléfono 📱");
-  };
-
-  // SENSOR DE SACUDIDA
-  useEffect(() => {
-    Accelerometer.setUpdateInterval(300);
-
-    const subscription = Accelerometer.addListener(({ x, y, z }) => {
-      const totalForce = Math.sqrt(x * x + y * y + z * z);
-
-      if (totalForce > 1.8) {
-        if (!shakeTimeout.current) {
-          limpiarFormulario();
-          shakeTimeout.current = setTimeout(() => {
-            shakeTimeout.current = null;
-          }, 2000);
-        }
-      }
-    });
-
-    return () => subscription.remove();
-  }, []);
-
+  // ── Finalizar prueba y guardar en Context ──────────────────────────────────
   const finalizarPrueba = () => {
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente activo");
-      return;
+    const puntajeTotal = Object.values(puntajes).reduce((a, b) => a + b, 0);
+    const puntajeMax = 30;
+
+    // Determinar interpretación
+    let interpretacion = "";
+    if (puntajeTotal >= 25) {
+      interpretacion = "Normal";
+    } else if (puntajeTotal >= 20) {
+      interpretacion = "Deterioro leve";
+    } else if (puntajeTotal >= 15) {
+      interpretacion = "Deterioro moderado";
+    } else {
+      interpretacion = "Deterioro severo";
     }
 
-    const nuevaPrueba = {
-      tipo: "OARS",
-      fecha: new Date().toLocaleDateString(),
-      detalle: {
-        respuestas: form,
+    // ⭐ CREAR OBJETO RESULTADO ESTÁNDAR ⭐
+    const resultado = {
+      nombre:          "OARS", // ⭐ NOMBRE DE LA PRUEBA
+      puntaje:         puntajeTotal,
+      puntajeMax:      puntajeMax,
+      interpretacion:  interpretacion,
+      fecha:           new Date().toLocaleDateString("es-MX"),
+      hora:            new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+      detalles: {
+        socialResources:     puntajes.socialResources,
+        economicResources:   puntajes.economicResources,
+        mentalHealth:        puntajes.mentalHealth,
+        physicalHealth:      puntajes.physicalHealth,
+        capacityForSelfCare: puntajes.capacityForSelfCare,
       },
     };
 
-    setPacienteActual((prev) => ({
-      ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaPrueba],
-    }));
+    // ⭐ GUARDAR COMO PRUEBA INDIVIDUAL EN CONTEXT ⭐
+    // Parámetro 1: Nombre de la PRUEBA (no categoría)
+    // Parámetro 2: Objeto con datos
+    console.log("📊 Guardando OARS como prueba individual:", resultado);
+    guardarResultadoPrueba("OARS", resultado);
+
+    setCompletado(true);
 
     Alert.alert(
-      "Prueba Guardada",
-      "El formulario OARS fue guardado correctamente."
+      "✅ Prueba OARS Completada",
+      `Puntaje: ${puntajeTotal}/${puntajeMax}\nInterpretación: ${interpretacion}`,
+      [
+        {
+          text: "Volver a Agendar Cita",
+          onPress: () => {
+            console.log("Volviendo a Agendar Cita...");
+            setScreen("Agendar Cita");
+          },
+        },
+      ]
     );
-
-    setScreen("Agendar Cita");
   };
 
+  // ── Volver sin guardar ─────────────────────────────────────────────────────
+  const volver = () => {
+    Alert.alert(
+      "Volver",
+      "¿Deseas salir sin guardar los resultados?",
+      [
+        { text: "Continuar" },
+        { text: "Salir", onPress: () => setScreen("Agendar Cita") },
+      ]
+    );
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <ScrollView style={{ padding: 16 }}>
-      <Text style={{ fontSize: 22, fontWeight: "bold", marginBottom: 12 }}>
-        Formulario OARS
-      </Text>
+    <View style={s.container}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
 
-      
-
-
-      {/* Datos básicos */}
-      <Text>Nombre:</Text>
-      <TextInput
-        style={styles.input}
-        onChangeText={(v) => setField("nombre", v)}
-      />
-
-      <Text>Edad:</Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        onChangeText={(v) => setField("edad", v)}
-      />
-
-      {/* SEXO */}
-      <Text>Sexo:</Text>
-      <Checkbox
-        label="Hombre"
-        selected={form.sexo === "Hombre"}
-        onPress={() => setField("sexo", "Hombre")}
-      />
-      <Checkbox
-        label="Mujer"
-        selected={form.sexo === "Mujer"}
-        onPress={() => setField("sexo", "Mujer")}
-      />
-
-      {/* FECHA */}
-      <Text>Fecha:</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowDatePicker(true)}
-      >
-        <Text>{form.fecha || "Seleccionar fecha"}</Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={form.fecha ? new Date(form.fecha) : new Date()}
-          mode="date"
-          display="default"
-          onChange={onChangeFecha}
-          maximumDate={new Date()}
-        />
-      )}
-
-      {/* 1 */}
-      <Text style={styles.q}>1. ¿Su estado civil es?</Text>
-      {[
-        "Soltero(a)",
-        "Casado(a) o Unión Libre",
-        "Viudo(a)",
-        "Divorciado(a)",
-        "Separado(a)",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.estadoCivil === op}
-          onPress={() => setField("estadoCivil", op)}
-        />
-      ))}
-
-      {/* 2 */}
-      {form.estadoCivil === "Casado(a) o Unión Libre" && (
-        <>
-          <Text style={styles.q}>
-            2. ¿Vive su esposo(a)?
+        {/* Encabezado */}
+        <View style={s.header}>
+          <Text style={s.titulo}>🧠 Evaluación OARS</Text>
+          <Text style={s.subtitulo}>
+            Older Americans Resources and Services
           </Text>
-          {["No", "Sí"].map((op) => (
-            <Checkbox
-              key={op}
-              label={op}
-              selected={form.viveEsposo === op}
-              onPress={() => setField("viveEsposo", op)}
-            />
+        </View>
+
+        {/* Info paciente desde Context */}
+        {citaEnProgreso?.nombre && (
+          <View style={s.pacienteInfo}>
+            <Text style={s.pacienteNombre}>👤 {citaEnProgreso.nombre}</Text>
+            <Text style={s.pacienteTele}>📞 {citaEnProgreso.telefono}</Text>
+          </View>
+        )}
+
+        {/* Preguntas */}
+        <View style={s.preguntasContainer}>
+          {preguntas.map((p, idx) => (
+            <View key={p.id} style={s.preguntaCard}>
+              <View style={s.preguntaHeader}>
+                <Text style={s.preguntaNum}>Pregunta {idx + 1}</Text>
+                <Text style={s.preguntaTitulo}>{p.titulo}</Text>
+              </View>
+              <Text style={s.preguntaDesc}>{p.descripcion}</Text>
+
+              {/* Opciones de respuesta (0-6) */}
+              <View style={s.opcionesRow}>
+                {[0, 1, 2, 3, 4, 5, 6].map((valor) => (
+                  <TouchableOpacity
+                    key={valor}
+                    style={[
+                      s.opcionBtn,
+                      puntajes[p.campo] === valor && s.opcionBtnActivo,
+                    ]}
+                    onPress={() => actualizarPuntaje(p.campo, valor)}
+                  >
+                    <Text
+                      style={[
+                        s.opcionBtnTxt,
+                        puntajes[p.campo] === valor && s.opcionBtnTxtActivo,
+                      ]}
+                    >
+                      {valor}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           ))}
-        </>
-      )}
+        </View>
 
-      {/* 3 */}
-      <Text style={styles.q}>
-        3. ¿Con quién vive usted?
-      </Text>
-      {[
-        "Nadie",
-        "Esposo(a)",
-        "Hijos(as)",
-        "Nietos(as)",
-        "Padres",
-        "Hermanos(as)",
-        "Otros familiares",
-        "Amigos(as)",
-        "Cuidadores pagados",
-        "Otros",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.viveCon.includes(op)}
-          onPress={() => toggleMulti("viveCon", op)}
-        />
-      ))}
-
-      {/* 4 */}
-      <Text style={styles.q}>
-        4. ¿Con cuántas personas vive?
-      </Text>
-      <TextInput
-        style={styles.input}
-        keyboardType="numeric"
-        onChangeText={(v) =>
-          setField("personasVive", v)
-        }
-      />
-
-      {/* 5 */}
-      <Text style={styles.q}>
-        5. ¿Cuántas veces visitó a familia/amigos?
-      </Text>
-      {[
-        "Nunca",
-        "Cada seis meses",
-        "Cada tres meses",
-        "Cada mes",
-        "Menos de una vez al mes",
-        "Menos de una vez a la semana",
-        "1-3 veces a la semana",
-        "Más de cuatro veces a la semana",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.visitas === op}
-          onPress={() => setField("visitas", op)}
-        />
-      ))}
-
-      {/* 6 */}
-      <Text style={styles.q}>
-        6. ¿A cuántas personas conoce para visitar?
-      </Text>
-      {[
-        "Ninguna",
-        "Una o dos",
-        "Tres a cuatro",
-        "Cinco o más",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.conocidos === op}
-          onPress={() => setField("conocidos", op)}
-        />
-      ))}
-
-      {/* 7 */}
-      <Text style={styles.q}>
-        7. ¿Cuántas veces habló por teléfono?
-      </Text>
-      {[
-        "Ninguna",
-        "Una vez a la semana",
-        "Dos a seis veces",
-        "Más de seis veces",
-        "Una vez al día",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.telefono === op}
-          onPress={() => setField("telefono", op)}
-        />
-      ))}
-
-      {/* 8 */}
-      <Text style={styles.q}>
-        8. ¿Cuántas veces pasó tiempo con alguien?
-      </Text>
-      {[
-        "Ninguna",
-        "Una vez",
-        "2-6 veces",
-        "Más de seis veces",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.tiempoConOtros === op}
-          onPress={() =>
-            setField("tiempoConOtros", op)
-          }
-        />
-      ))}
-
-      {/* 9 */}
-      <Text style={styles.q}>
-        9. ¿Tiene alguien en quien confiar?
-      </Text>
-      {["No", "Sí"].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.confianza === op}
-          onPress={() => setField("confianza", op)}
-        />
-      ))}
-
-      {form.confianza === "Sí" && (
-        <TextInput
-          style={styles.input}
-          placeholder="Especifique"
-          onChangeText={(v) =>
-            setField("confianzaTexto", v)
-          }
-        />
-      )}
-
-      {/* 10 */}
-      <Text style={styles.q}>
-        10. ¿Se siente solo(a)?
-      </Text>
-      {[
-        "Casi nunca",
-        "Algunas veces",
-        "A menudo",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.soledad === op}
-          onPress={() => setField("soledad", op)}
-        />
-      ))}
-
-      {/* 11 */}
-      <Text style={styles.q}>
-        11. ¿Ve a sus familiares como quisiera?
-      </Text>
-      {[
-        "Algo triste por la poca frecuencia",
-        "Tan a menudo como quisiera",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={
-            form.frecuenciaFamilia === op
-          }
-          onPress={() =>
-            setField("frecuenciaFamilia", op)
-          }
-        />
-      ))}
-
-      {/* 12 */}
-      <Text style={styles.q}>
-        12. ¿Tendría quien le ayudara?
-      </Text>
-      {["No", "Sí"].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.ayuda === op}
-          onPress={() => setField("ayuda", op)}
-        />
-      ))}
-
-      {form.ayuda === "Sí" && (
-        <>
-          <Text style={styles.q}>
-            A) ¿Esa persona cuidaría de usted?
-          </Text>
-          {[
-            "Forma pasajera",
-            "Corto periodo",
-            "Indefinida",
-          ].map((op) => (
-            <Checkbox
-              key={op}
-              label={op}
-              selected={
-                form.tipoCuidado === op
-              }
-              onPress={() =>
-                setField("tipoCuidado", op)
-              }
-            />
+        {/* Resumen de puntajes */}
+        <View style={s.resumenBox}>
+          <Text style={s.resumenTitulo}>Resumen de Puntajes</Text>
+          {Object.entries(puntajes).map(([campo, valor]) => (
+            <View key={campo} style={s.resumenRow}>
+              <Text style={s.resumenLabel}>{campo}</Text>
+              <Text style={s.resumenValor}>{valor}/6</Text>
+            </View>
           ))}
+          <View style={[s.resumenRow, s.resumenTotal]}>
+            <Text style={s.resumenLabel}>TOTAL</Text>
+            <Text style={s.resumenValor}>
+              {Object.values(puntajes).reduce((a, b) => a + b, 0)}/30
+            </Text>
+          </View>
+        </View>
 
-          <Text style={styles.q}>
-            B) ¿Quién sería esa persona?
-          </Text>
+        {/* Botones de acción */}
+        <View style={s.accionesContainer}>
+          <TouchableOpacity
+            style={[s.boton, s.botonPrimario]}
+            onPress={finalizarPrueba}
+            disabled={completado}
+          >
+            <Text style={s.botonTxt}>✅ Finalizar y Guardar</Text>
+          </TouchableOpacity>
 
-          <Text>Nombre:</Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(v) =>
-              setField("cuidadorNombre", v)
-            }
-          />
+          <TouchableOpacity style={[s.boton, s.botonSecundario]} onPress={volver}>
+            <Text style={s.botonTxt}>↩️ Volver sin Guardar</Text>
+          </TouchableOpacity>
+        </View>
 
-          <Text>Relación:</Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={(v) =>
-              setField(
-                "cuidadorRelacion",
-                v
-              )
-            }
-          />
-        </>
-      )}
+        {/* Mensaje de éxito */}
+        {completado && (
+          <View style={s.successBox}>
+            <Text style={s.successTxt}>
+              ✅ Resultado guardado. Redirigiendo a "Agendar Cita"...
+            </Text>
+          </View>
+        )}
 
-      {/* 13 */}
-      <Text style={styles.q}>
-        13. ¿Cómo considera la convivencia?
-      </Text>
-      {[
-        "Muy insatisfactoria",
-        "Insatisfactoria",
-        "Muy satisfactoria",
-        "Satisfactoria",
-      ].map((op) => (
-        <Checkbox
-          key={op}
-          label={op}
-          selected={form.convivencia === op}
-          onPress={() =>
-            setField("convivencia", op)
-          }
-        />
-      ))}
-
-      <Text style={styles.q}>Evaluador:</Text>
-      <TextInput
-        style={styles.input}
-        onChangeText={(v) =>
-          setField("evaluador", v)
-        }
-      />
-      <View style={{ height: 30 }} />
-
-      <Button
-        title="Finalizar y Guardar OARS"
-        onPress={finalizarPrueba}
-      />
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
-const styles = {
-  input: {
-    borderWidth: 1,
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 10,
-  },
-  q: {
-    marginTop: 14,
-    fontWeight: "bold",
-  },
-};
+// ── Estilos ────────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  container:           { flex: 1, backgroundColor: "#EEF2F7" },
+  content:             { padding: 16, paddingBottom: 30 },
+
+  header:              { backgroundColor: "#1565C0", borderRadius: 12, padding: 16,
+                         marginBottom: 16 },
+  titulo:              { fontSize: 20, fontWeight: "800", color: "#fff", marginBottom: 4 },
+  subtitulo:           { fontSize: 12, color: "#E3F2FD" },
+
+  pacienteInfo:        { backgroundColor: "#E3F2FD", borderRadius: 10, padding: 12,
+                         marginBottom: 16, elevation: 2 },
+  pacienteNombre:      { fontSize: 14, fontWeight: "700", color: "#0D47A1" },
+  pacienteTele:        { fontSize: 12, color: "#1565C0", marginTop: 4 },
+
+  preguntasContainer:  { marginBottom: 16 },
+  preguntaCard:        { backgroundColor: "#fff", borderRadius: 12, padding: 14,
+                         marginBottom: 12, elevation: 2 },
+  preguntaHeader:      { marginBottom: 8 },
+  preguntaNum:         { fontSize: 11, color: "#1565C0", fontWeight: "700" },
+  preguntaTitulo:      { fontSize: 14, fontWeight: "700", color: "#333", marginTop: 4 },
+  preguntaDesc:        { fontSize: 12, color: "#666", marginBottom: 12 },
+
+  opcionesRow:         { flexDirection: "row", gap: 6 },
+  opcionBtn:           { flex: 1, paddingVertical: 10, borderRadius: 8,
+                         backgroundColor: "#F5F5F5", alignItems: "center",
+                         borderWidth: 1.5, borderColor: "#ddd" },
+  opcionBtnActivo:     { backgroundColor: "#1565C0", borderColor: "#1565C0" },
+  opcionBtnTxt:        { fontWeight: "700", fontSize: 12, color: "#555" },
+  opcionBtnTxtActivo:  { color: "#fff" },
+
+  resumenBox:          { backgroundColor: "#fff", borderRadius: 12, padding: 14,
+                         marginBottom: 16, elevation: 2, borderLeftWidth: 4,
+                         borderLeftColor: "#1565C0" },
+  resumenTitulo:       { fontSize: 14, fontWeight: "800", color: "#1565C0",
+                         marginBottom: 10 },
+  resumenRow:          { flexDirection: "row", justifyContent: "space-between",
+                         paddingVertical: 6, borderBottomWidth: 0.5,
+                         borderBottomColor: "#eee" },
+  resumenLabel:        { fontSize: 12, color: "#333", fontWeight: "600" },
+  resumenValor:        { fontSize: 13, fontWeight: "800", color: "#1565C0" },
+  resumenTotal:        { borderBottomWidth: 0, paddingTop: 10, marginTop: 6,
+                         borderTopWidth: 1.5, borderTopColor: "#1565C0",
+                         backgroundColor: "#E3F2FD" },
+
+  accionesContainer:   { gap: 10, marginBottom: 16 },
+  boton:               { padding: 14, borderRadius: 10, alignItems: "center" },
+  botonPrimario:       { backgroundColor: "#2E7D32" },
+  botonSecundario:     { backgroundColor: "#666" },
+  botonTxt:            { color: "#fff", fontWeight: "700", fontSize: 14 },
+
+  successBox:          { backgroundColor: "#E8F5E9", borderRadius: 10, padding: 12,
+                         borderLeftWidth: 4, borderLeftColor: "#2E7D32" },
+  successTxt:          { color: "#2E7D32", fontWeight: "700", fontSize: 12 },
+});
