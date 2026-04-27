@@ -20,7 +20,7 @@ export default function FuncionamientoMenuScreen({ setScreen }) {
         <Text style={styles.buttonText}>2. Índice de Lawton</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={() => setScreen("SPPB")}>
         <Text style={styles.buttonText}>3. SPPB</Text>
       </TouchableOpacity>
 

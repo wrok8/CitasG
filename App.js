@@ -50,6 +50,7 @@ import PreferenciasPacienteScreen from "./screens/PreferenciasPacienteScreen";
 import ObservacionesScreen from "./screens/ObservacionesScreen";
 import { initBitacoraDB } from "./database.js";
 import FrailScreen from "./screens/FrailScreen.js";
+import SPPBScreen from "./screens/SPPBScreen.js"
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
@@ -179,6 +180,15 @@ function MainApp() {
               paciente={pacienteActual}
               setPacienteActual={setPacienteActual}
               setScreen={setScreen}
+            />
+          );
+
+      case "SPPB":
+          return (
+            <SPPBScreen
+              setScreen={setScreen}
+              pacienteActual={pacienteActual}
+              setPacienteActual={setPacienteActual}
             />
           );
 

@@ -35,54 +35,70 @@ export default function SarcFScreen({
     return total;
   };
 
- const guardarDatos = () => {
-  if (!pacienteActual) {
-    Alert.alert("Error", "No hay paciente seleccionado");
-    return;
-  }
+  const guardarDatos = () => {
+    if (!pacienteActual) {
+      Alert.alert("Error", "No hay paciente seleccionado");
+      return;
+    }
 
-  if (Object.values(respuestas).includes(null)) {
-    Alert.alert("Error", "Contesta todas las preguntas");
-    return;
-  }
+    if (Object.values(respuestas).includes(null)) {
+      Alert.alert("Error", "Contesta todas las preguntas");
+      return;
+    }
 
-  const puntaje = calcularPuntaje();
+    const puntaje = calcularPuntaje();
 
-  const interpretacion =
-    puntaje >= 4
-      ? "Alta probabilidad de sarcopenia"
-      : "Baja probabilidad de sarcopenia";
+    const interpretacion =
+      puntaje >= 4
+        ? "Alta probabilidad de sarcopenia"
+        : "Baja probabilidad de sarcopenia";
 
-  const nuevaPrueba = {
-    tipo: "SARC-F",
-    fecha: new Date().toLocaleDateString(),
-    puntaje: puntaje,
-    detalle: [
-      "Interpretación: " + interpretacion,
-    ],
+    const nuevaPrueba = {
+      tipo: "SARC-F",
+      fecha: new Date().toLocaleDateString(),
+      puntaje: puntaje,
+      maximo: 10,
+      detalle: [
+        `Interpretación: ${interpretacion}`,
+      ],
+    };
+
+    const pruebasActualizadas = Array.isArray(
+      pacienteActual.pruebas
+    )
+      ? [...pacienteActual.pruebas, nuevaPrueba]
+      : [nuevaPrueba];
+
+    const pacienteActualizado = {
+      ...pacienteActual,
+      pruebas: pruebasActualizadas,
+    };
+
+    // actualizar paciente actual
+    setPacienteActual(pacienteActualizado);
+
+    // actualizar lista global de pacientes
+    const pacientesActualizados = pacientes.map((p) =>
+      p.id === pacienteActual.id
+        ? pacienteActualizado
+        : p
+    );
+
+    setPacientes(pacientesActualizados);
+
+    Alert.alert(
+      "SARC-F Guardado",
+      `Puntaje: ${puntaje}/10\n${interpretacion}`,
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            setScreen("Agendar Cita");
+          },
+        },
+      ]
+    );
   };
-
-  // 🔥 Agregar al array pruebas (misma lógica que tus otras evaluaciones)
-  const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
-    ? [...pacienteActual.pruebas, nuevaPrueba]
-    : [nuevaPrueba];
-
-  const pacienteActualizado = {
-    ...pacienteActual,
-    pruebas: pruebasActualizadas,
-  };
-
-  // Actualizar pacienteActual
-  setPacienteActual(pacienteActualizado);
-
-  Alert.alert(
-    "SARC-F Guardado",
-    "Puntaje: " + puntaje + "\n" + interpretacion
-  );
-
-  // 🔥 Regresa al Resumen (igual que tus otras pruebas)
-  setScreen("Resumen");
-};
 
   return (
     <ScrollView style={styles.container}>
