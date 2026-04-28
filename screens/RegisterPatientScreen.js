@@ -1,12 +1,3 @@
-/**
- * RegisterPatientScreen.js - CON PRUEBAS INDIVIDUALES
- * 
- * Ahora muestra cada prueba realizada de forma individual:
- * ✅ OARS: 21 pts
- * ✅ GDS-15: 10 pts
- * ✅ Katz: 6 pts
- */
-
 import React, { useState, useEffect, useContext } from "react";
 import {
   ScrollView,
@@ -32,7 +23,6 @@ export default function RegisterPatientScreen({
   setPacienteActual,
   pacienteActual,
 }) {
-  // ── Context ────────────────────────────────────────────────────────────────
   const evaluationContext = useContext(EvaluationContext);
   const {
     citaEnProgreso,
@@ -42,24 +32,18 @@ export default function RegisterPatientScreen({
     limpiarCitaEnProgreso,
   } = evaluationContext;
 
-  // ── Estado local ───────────────────────────────────────────────────────────
   const [usuarios, setUsuarios]                   = useState([]);
   const [showDatePicker, setShowDatePicker]       = useState(false);
   const [showTimePicker, setShowTimePicker]       = useState(false);
   const [usuarioActual, setUsuarioActual]         = useState("Sistema");
-
   const STORAGE_KEY   = "@usuarios_app";
   const USER_SELECTED = "@usuario_seleccionado";
-
-  // ── Ciclo de vida ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     initBitacora();
     cargarUsuarios();
     cargarUsuarioSeleccionado();
   }, []);
-
-  // ── Cargar usuarios de Firebase ────────────────────────────────────────────
 
   const cargarUsuarios = () => {
     const { ref: dbRef, onValue } = require("firebase/database");
@@ -93,7 +77,6 @@ export default function RegisterPatientScreen({
     }
   };
 
-  // ── Seleccionar usuario (paciente) ─────────────────────────────────────────
 
   const seleccionarUsuario = (usuario) => {
     actualizarDatosCita({
@@ -104,7 +87,6 @@ export default function RegisterPatientScreen({
     });
   };
 
-  // ── Manejadores de fecha y hora ────────────────────────────────────────────
 
   const onChangeDate = (event, selectedDate) => {
     const currentDate = selectedDate || citaEnProgreso.fecha;
@@ -122,10 +104,8 @@ export default function RegisterPatientScreen({
   const formatTime = (date) =>
     new Date(date).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 
-  // ── Agendar cita (guardar en Firebase) ──────────────────────────────────────
 
   const handleSubmit = async () => {
-    // Validaciones
     if (!citaEnProgreso.nombre || !citaEnProgreso.telefono) {
       Alert.alert("Error", "Debes seleccionar un paciente");
       return;
@@ -135,15 +115,12 @@ export default function RegisterPatientScreen({
       return;
     }
 
-    // Obtener todas las pruebas realizadas
     const todasLasPruebas = obtenerTodasLasPruebas();
     const evaluacionesActivas = Object.keys(citaEnProgreso.evaluacionesActivas).filter(
       (key) => citaEnProgreso.evaluacionesActivas[key]
     );
 
-    // Objeto de cita completo
     const nuevaCita = {
-      // Identificación
       pacienteId:         citaEnProgreso.telefono,
       nombre:             citaEnProgreso.nombre,
       contacto:           citaEnProgreso.contacto,
@@ -151,22 +128,13 @@ export default function RegisterPatientScreen({
       telefono:           citaEnProgreso.telefono,
       medico:             citaEnProgreso.medico,
       centroGeriatrico:   citaEnProgreso.centroGeriatrico,
-
-      // Fecha y hora
       fecha:              citaEnProgreso.fecha.toISOString(),
       hora:               formatTime(citaEnProgreso.hora),
-
-      // Motivo y síntomas
       motivo:             citaEnProgreso.motivo,
       sintomas:           citaEnProgreso.sintomas,
-
-      // Evaluaciones realizadas
       evaluacionesActivas: evaluacionesActivas,
-      
-      // ⭐ PRUEBAS INDIVIDUALES CON PUNTAJES ⭐
       evaluacionesResultados: citaEnProgreso.evaluacionesResultados,
       
-      // Resumen de pruebas para vista rápida
       resumenPruebas: todasLasPruebas.map((p) => ({
         nombre: p.nombre,
         puntaje: p.puntaje,
@@ -198,19 +166,15 @@ export default function RegisterPatientScreen({
         `Cita agendada para ${citaEnProgreso.nombre} con ${citaEnProgreso.medico} el ${formatDate(citaEnProgreso.fecha)}.${pruebrasStr}`
       );
 
-      // Setear paciente actual para otros usos
       setPacienteActual(nuevaCita);
-
-      // Limpiar el contexto de cita en progreso
       limpiarCitaEnProgreso();
 
-      // Mensaje de éxito con detalle de pruebas
       const detallesPruebas = todasLasPruebas.length > 0
         ? `\n\nPruebas realizadas:\n${todasLasPruebas.map((p) => `• ${p.nombre}: ${p.puntaje}/${p.puntajeMax} pts`).join("\n")}`
         : "";
 
       Alert.alert(
-        "✅ Cita agendada exitosamente",
+        "Cita agendada exitosamente",
         `Paciente: ${citaEnProgreso.nombre}\nMédico: ${citaEnProgreso.medico}\nFecha: ${formatDate(citaEnProgreso.fecha)}${detallesPruebas}`,
         [
           { text: "Ver Resumen", onPress: () => setScreen("Resumen") },
@@ -223,30 +187,23 @@ export default function RegisterPatientScreen({
     }
   };
 
-  // ── Navegar a menú de evaluación ───────────────────────────────────────────
-
   const handleNavigate = (screenName) => {
     setScreen(screenName);
   };
-
-  // ── Obtener todas las pruebas para mostrar ─────────────────────────────────
-
   const todasLasPruebas = obtenerTodasLasPruebas();
-
-  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
 
-        {/* Banner paciente activo */}
+
         {citaEnProgreso.nombre !== "" && (
           <View style={styles.pacienteActivo}>
-            <Text style={styles.pacienteTexto}>👤 Paciente: {citaEnProgreso.nombre}</Text>
+            <Text style={styles.pacienteTexto}> Paciente: {citaEnProgreso.nombre}</Text>
           </View>
         )}
 
-        {/* ── Selección de usuario ── */}
+
         <Text style={styles.subtitle}>Seleccionar Paciente</Text>
         {usuarios.map((u) => (
           <TouchableOpacity
@@ -258,12 +215,12 @@ export default function RegisterPatientScreen({
             onPress={() => seleccionarUsuario(u)}
           >
             <Text style={styles.userName}>{u.nombre}</Text>
-            <Text style={styles.userSub}>📧 {u.correo}</Text>
-            <Text style={styles.userSub}>📞 {u.telefono}</Text>
+            <Text style={styles.userSub}> {u.correo}</Text>
+            <Text style={styles.userSub}> {u.telefono}</Text>
           </TouchableOpacity>
         ))}
 
-        {/* ── Datos del paciente (solo lectura) ── */}
+
         <Text style={styles.subtitle}>Datos del Paciente</Text>
 
         <Field label="Paciente"  value={citaEnProgreso.nombre}   />
@@ -271,7 +228,7 @@ export default function RegisterPatientScreen({
         <Field label="Email"     value={citaEnProgreso.email}    />
         <Field label="Teléfono"  value={citaEnProgreso.telefono} />
 
-        {/* ── Datos de la cita ── */}
+
         <Text style={styles.subtitle}>Datos de la Cita</Text>
 
         <Text style={styles.label}>Médico *</Text>
@@ -301,7 +258,7 @@ export default function RegisterPatientScreen({
         {/* Fecha */}
         <Text style={styles.label}>Fecha de Cita</Text>
         <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.dateText}>📅  {formatDate(citaEnProgreso.fecha)}</Text>
+          <Text style={styles.dateText}>  {formatDate(citaEnProgreso.fecha)}</Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -315,7 +272,7 @@ export default function RegisterPatientScreen({
         {/* Hora */}
         <Text style={styles.label}>Hora de Cita</Text>
         <TouchableOpacity style={styles.dateButton} onPress={() => setShowTimePicker(true)}>
-          <Text style={styles.dateText}>🕐  {formatTime(citaEnProgreso.hora)}</Text>
+          <Text style={styles.dateText}>  {formatTime(citaEnProgreso.hora)}</Text>
         </TouchableOpacity>
         {showTimePicker && (
           <DateTimePicker
@@ -326,7 +283,6 @@ export default function RegisterPatientScreen({
           />
         )}
 
-        {/* Síntomas */}
         <Text style={styles.label}>Síntomas / Notas</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -336,15 +292,15 @@ export default function RegisterPatientScreen({
           onChangeText={(t) => actualizarDatosCita({ sintomas: t })}
         />
 
-        {/* ── Evaluaciones geriátricas ── */}
+
         <Text style={styles.subtitle}>Evaluaciones Geriátricas</Text>
 
         {[
-          { key: "Cognitivo",      screen: "CognitivoMenu",      icon: "🧠" },
-          { key: "Afectivo",       screen: "AfectivoMenu",       icon: "❤️" },
-          { key: "Funcionamiento", screen: "FuncionamientoMenu", icon: "🚶" },
-          { key: "Nutricional",    screen: "NutricionalMenu",    icon: "🍽️" },
-          { key: "Entorno",        screen: "EntornoMenu",        icon: "🏠" },
+          { key: "Cognitivo",      screen: "CognitivoMenu",      icon: "" },
+          { key: "Afectivo",       screen: "AfectivoMenu",       icon: "" },
+          { key: "Funcionamiento", screen: "FuncionamientoMenu", icon: "" },
+          { key: "Nutricional",    screen: "NutricionalMenu",    icon: "" },
+          { key: "Entorno",        screen: "EntornoMenu",        icon: "" },
         ].map(({ key, screen: scr, icon }) => (
           <View key={key}>
             <View style={styles.switchRow}>
@@ -370,7 +326,6 @@ export default function RegisterPatientScreen({
           </View>
         ))}
 
-        {/* ⭐ RESUMEN DE PRUEBAS INDIVIDUALES ⭐ */}
         {todasLasPruebas.length > 0 && (
           <View style={styles.resumenPruebas}>
             <Text style={styles.resumenTitulo}>📊 Pruebas Realizadas</Text>
@@ -392,16 +347,15 @@ export default function RegisterPatientScreen({
           </View>
         )}
 
-        {/* ── Acciones principales ── */}
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>📅 AGENDAR CITA</Text>
+          <Text style={styles.buttonText}>AGENDAR CITA</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: "#6A1B9A", marginTop: 10 }]}
           onPress={() => setScreen("ControlCitas")}
         >
-          <Text style={styles.buttonText}>📋 VER CONTROL DE CITAS</Text>
+          <Text style={styles.buttonText}>VER CONTROL DE CITAS</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -410,7 +364,6 @@ export default function RegisterPatientScreen({
   );
 }
 
-// ── Componente auxiliar: Campo de solo lectura ───────────────────────────────
 
 function Field({ label, value }) {
   return (
@@ -425,17 +378,16 @@ function Field({ label, value }) {
   );
 }
 
-// ── Helper: Obtener color según puntaje ────────────────────────────────────
 
 function obtenerColorPuntaje(prueba) {
   if (!prueba.puntaje || !prueba.puntajeMax) return "#333";
   const porcentaje = (prueba.puntaje / prueba.puntajeMax) * 100;
-  if (porcentaje >= 80) return "#2E7D32"; // Verde: bien
-  if (porcentaje >= 50) return "#F57F17"; // Naranja: medio
-  return "#B71C1C"; // Rojo: bajo
+  if (porcentaje >= 80) return "#2E7D32"; 
+  if (porcentaje >= 50) return "#F57F17"; 
+  return "#B71C1C"; 
 }
 
-// ── Estilos ────────────────────────────────────────────────────────────────────
+
 
 const styles = StyleSheet.create({
   container:           { padding: 20 },

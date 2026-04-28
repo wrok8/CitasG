@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,12 @@ import {
   FlatList,
   TextInput,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
+import { Accelerometer } from "expo-sensors";
 
 export default function AudicionScreen({ setScreen, pacienteActual, setPacienteActual }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState([]);
   const [input, setInput] = useState("");
   const [activo, setActivo] = useState(false);
@@ -23,43 +27,96 @@ export default function AudicionScreen({ setScreen, pacienteActual, setPacienteA
     "¿Siente zumbido en los oídos?"
   ];
 
-  // ▶ Iniciar prueba
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+    const subscription = Accelerometer.addListener(data => {
+      const { x, y, z } = data;
+      const aceleracion = Math.sqrt(x * x + y * y + z * z);
+
+      if (aceleracion > 2.2) {
+        resetearPrueba();
+      }
+    });
+
+    return () => subscription && subscription.remove();
+  }, [respuestas, activo, preguntaIndex]);
+
+  const resetearPrueba = () => {
+    setRespuestas([]);
+    setInput("");
+    setPreguntaIndex(0);
+    setActivo(false);
+    Alert.alert("Reinicio", "La prueba ha sido reiniciada por sacudir el dispositivo");
+  };
+
   const iniciarPrueba = () => {
     setRespuestas([]);
     setPreguntaIndex(0);
     setActivo(true);
   };
 
-  // ➕ Guardar respuesta y pasar a siguiente
   const siguientePregunta = () => {
     if (input.trim() === "") {
       Alert.alert("Atención", "Por favor escriba una respuesta");
       return;
     }
 
-    setRespuestas([...respuestas, input.trim()]);
+    setRespuestas(prev => [...prev, input.trim()]);
     setInput("");
 
     if (preguntaIndex + 1 < preguntas.length) {
       setPreguntaIndex(preguntaIndex + 1);
     } else {
-      finalizarPrueba();
+      finalizarPrueba([...respuestas, input.trim()]);
     }
   };
 
-  // ⏹ Finalizar prueba
-  const finalizarPrueba = () => {
+  const calcularPuntaje = (resps) => {
+    let puntos = 0;
+    resps.forEach(r => {
+      const txt = r.toLowerCase();
+      if (txt.includes("no") || txt.includes("dificultad") || txt.includes("zumbido")) {
+        puntos += 0;
+      } else {
+        puntos += 1;
+      }
+    });
+    return puntos;
+  };
+
+  const finalizarPrueba = (respsFinales) => {
     setActivo(false);
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
+    const puntaje = calcularPuntaje(respsFinales);
+
+    let interpretacion = "";
+    if (puntaje >= 4) interpretacion = "Audición conservada";
+    else if (puntaje >= 2) interpretacion = "Posible deterioro auditivo";
+    else interpretacion = "Deterioro auditivo significativo";
+
+    const resultado = {
+      nombre: "Audición",
+      puntaje: puntaje,
+      puntajeMax: preguntas.length,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: respsFinales,
+    };
+
+    guardarResultadoPrueba("Audicion", resultado);
 
     const nuevaEvaluacion = {
       tipo: "Audición",
       fecha: new Date().toLocaleDateString(),
-      detalle: respuestas,
+      puntaje: puntaje,
+      detalle: {
+        respuestas: respsFinales,
+        interpretacion,
+      },
     };
 
     setPacienteActual((prev) => ({
@@ -69,10 +126,10 @@ export default function AudicionScreen({ setScreen, pacienteActual, setPacienteA
 
     Alert.alert(
       "Prueba Finalizada",
-      `Se registraron ${respuestas.length} respuestas`
+      `Puntaje: ${puntaje}/${preguntas.length}\n${interpretacion}`
     );
 
-    setScreen("Agendar Cita"); // regresa a RegisterPatientScreen
+    setScreen("Agendar Cita");
   };
 
   return (

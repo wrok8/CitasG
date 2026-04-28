@@ -41,6 +41,14 @@ export default function CognitivoMenuScreen({ setScreen }) {
       >
         <Text style={styles.buttonText}>4. MoCA</Text>
       </TouchableOpacity>
+
+      {/* Botón volver */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => setScreen("Agendar Cita")}
+            >
+              <Text style={styles.backText}>Volver</Text>
+            </TouchableOpacity>
     </View>
   );
 }
@@ -68,5 +76,18 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  backButton: {
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1565C0",
+    alignItems: "center",
+  },
+  backText: {
+    color: "#1565C0",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

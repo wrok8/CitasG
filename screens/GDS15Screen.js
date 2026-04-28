@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Alert,
   Pressable,
@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const PREGUNTAS = [
   { id: 1, texto: "1. ¿En general, está satisfecho(a) con su vida?", valorPositivo: "No" },
@@ -31,60 +32,78 @@ export default function GDS15Screen({
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState({});
 
   const seleccionarRespuesta = (id, respuesta) => {
     setRespuestas({ ...respuestas, [id]: respuesta });
   };
 
- const finalizarEvaluacion = () => {
-  if (Object.keys(respuestas).length < 15) {
-    Alert.alert("Incompleto", "Responda todas las preguntas.");
-    return;
-  }
-
-  let puntaje = 0;
-
-  PREGUNTAS.forEach((pregunta) => {
-    if (respuestas[pregunta.id] === pregunta.valorPositivo) {
-      puntaje++;
-    }
-  });
-
-  let interpretacion = "";
-  if (puntaje <= 4) interpretacion = "Normal";
-  else if (puntaje <= 8) interpretacion = "Depresión leve";
-  else if (puntaje <= 11) interpretacion = "Depresión moderada";
-  else interpretacion = "Depresión severa";
-
-  if (!pacienteActual) {
-    Alert.alert("Error", "No hay paciente seleccionado");
-    return;
-  }
-
-  const nuevaEvaluacion = {
-    tipo: "GDS-15",
-    fecha: new Date().toLocaleDateString(),
-    puntaje: puntaje,
-    detalle: {
-      respuestas,
-      interpretacion,
-    },
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje <= 4) return "Normal";
+    if (puntaje <= 8) return "Depresión leve";
+    if (puntaje <= 11) return "Depresión moderada";
+    return "Depresión severa";
   };
 
-  // 🔥 MISMO SISTEMA QUE FLUENCIA VERBAL
-  setPacienteActual((prev) => ({
-    ...prev,
-    pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
-  }));
+  const finalizarEvaluacion = () => {
+    if (Object.keys(respuestas).length < 15) {
+      Alert.alert("Incompleto", "Responda todas las preguntas.");
+      return;
+    }
 
-  Alert.alert(
-    "Evaluación completada",
-    `Puntaje: ${puntaje}/15\n${interpretacion}`
-  );
+    let puntaje = 0;
 
-  setScreen("Agendar Cita");
-};
+    PREGUNTAS.forEach((pregunta) => {
+      if (respuestas[pregunta.id] === pregunta.valorPositivo) {
+        puntaje++;
+      }
+    });
+
+    const interpretacion = obtenerInterpretacion(puntaje);
+
+    const resultado = {
+      nombre: "GDS-15",
+      puntaje: puntaje,
+      puntajeMax: 15,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        respuestas: respuestas,
+      },
+    };
+
+    guardarResultadoPrueba("GDS-15", resultado);
+
+    if (pacienteActual) {
+      const nuevaEvaluacion = {
+        tipo: "GDS-15",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntaje,
+        detalle: {
+          respuestas,
+          interpretacion,
+        },
+      };
+
+      setPacienteActual((prev) => ({
+        ...prev,
+        pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      }));
+    }
+
+    Alert.alert(
+      "✅ Evaluación completada",
+      `Puntaje: ${puntaje}/15\n${interpretacion}`
+    );
+
+    setScreen("Agendar Cita");
+  };
 
   return (
     <ScrollView style={styles.container}>

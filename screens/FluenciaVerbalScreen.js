@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   FlatList,
   Alert,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const FluenciaVerbalScreen = ({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) => {
+  // ⭐ AGREGAR CONTEXT
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [palabra, setPalabra] = useState("");
   const [palabras, setPalabras] = useState([]);
   const [tiempoRestante, setTiempoRestante] = useState(60);
@@ -51,31 +55,70 @@ const FluenciaVerbalScreen = ({
     setActivo(true);
   };
 
+  // ⭐ FUNCIÓN PARA CALCULAR PUNTAJE
+  const calcularPuntaje = () => {
+    // El puntaje es la cantidad de palabras válidas
+    // En una prueba real habría que validar que sean animales
+    // Por ahora contamos todas las palabras ingresadas
+    return palabras.length;
+  };
+
+  // ⭐ FUNCIÓN PARA OBTENER INTERPRETACIÓN
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje >= 15) return "Fluencia normal o superior";
+    if (puntaje >= 10) return "Fluencia normal";
+    if (puntaje >= 5) return "Fluencia leve";
+    return "Fluencia reducida";
+  };
+
   // ⏹ Finalizar prueba
   const finalizarPrueba = () => {
     setActivo(false);
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
+    // ⭐ CALCULAR PUNTAJE
+    const puntajeTotal = calcularPuntaje();
+    const interpretacion = obtenerInterpretacion(puntajeTotal);
 
-    const nuevaEvaluacion = {
-      tipo: "Fluencia Verbal - Animales",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: palabras.length,
-      detalle: palabras,
+    // ⭐ CREAR OBJETO RESULTADO
+    const resultado = {
+      nombre: "Fluencia Verbal",
+      puntaje: puntajeTotal,
+      puntajeMax: 40, // Valor referencial máximo típico
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        categoria: "Animales",
+        palabras: palabras,
+        tiempoLimite: 60,
+      },
     };
 
-    // 🔥 Guardar en paciente.pruebas
-    setPacienteActual((prev) => ({
-      ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
-    }));
+    // ⭐ GUARDAR EN CONTEXT
+    guardarResultadoPrueba("Fluencia Verbal", resultado);
+
+    // Guardar también en pacienteActual si existe
+    if (pacienteActual) {
+      const nuevaEvaluacion = {
+        tipo: "Fluencia Verbal - Animales",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntajeTotal,
+        detalle: palabras,
+      };
+
+      // 🔥 Guardar en paciente.pruebas
+      setPacienteActual((prev) => ({
+        ...prev,
+        pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      }));
+    }
 
     Alert.alert(
-      "Prueba Finalizada",
-      `Se registraron ${palabras.length} palabras`
+      "✅ Prueba Finalizada",
+      `Se registraron ${puntajeTotal} palabras\n${interpretacion}`
     );
 
     setScreen("Agendar Cita");

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,16 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function MNAScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const quizData = [
     {
       id: "p1",
@@ -86,6 +90,29 @@ export default function MNAScreen({
     return null;
   }, [peso, estatura]);
 
+  useEffect(() => {
+    let last = { x: 0, y: 0, z: 0 };
+
+    const sub = Accelerometer.addListener(data => {
+      const delta =
+        Math.abs(data.x - last.x) +
+        Math.abs(data.y - last.y) +
+        Math.abs(data.z - last.z);
+
+      if (delta > 2.2) {
+        setAnswers({});
+        setPeso("");
+        setEstatura("");
+      }
+
+      last = data;
+    });
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => sub.remove();
+  }, []);
+
   const seleccionar = (questionId, optionId) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
@@ -96,10 +123,6 @@ export default function MNAScreen({
       return;
     }
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
 
     let total = 0;
 
@@ -112,6 +135,26 @@ export default function MNAScreen({
     if (total >= 12) diagnostico = "Estado nutricional normal";
     else if (total >= 8) diagnostico = "Riesgo de malnutrición";
     else diagnostico = "Malnutrición";
+
+    const resultado = {
+      nombre: "MNA",
+      puntaje: total,
+      puntajeMax: 14,
+      interpretacion: diagnostico,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        respuestas: answers,
+        imc: imcCalculado,
+        peso,
+        estatura,
+      },
+    };
+
+    guardarResultadoPrueba("MNA", resultado);
 
     const nuevaEvaluacion = {
       tipo: "MNA",
@@ -147,7 +190,6 @@ export default function MNAScreen({
 
       {quizData.map((item, index) => (
         <View key={item.id}>
-
           {index === 5 && (
             <View style={styles.imcCard}>
               <Text style={styles.imcTitle}>Calcular IMC</Text>

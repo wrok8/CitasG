@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -10,49 +10,70 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function MiniMentalScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [puntajeConocimiento, setPuntajeConocimiento] = useState(0);
 
   const { width } = useWindowDimensions();
   const isMobile = width < 600;
 
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje <= 24) return "Probable deterioro cognitivo";
+    return "Sin deterioro cognitivo";
+  };
+
   const handleGuardar = () => {
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
+    const puntajeTotal = Number(puntajeConocimiento);
+    const interpretacion = obtenerInterpretacion(puntajeTotal);
+
+    const resultado = {
+      nombre: "MMSE",
+      puntaje: puntajeTotal,
+      puntajeMax: 30,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        puntajeConocimientos: puntajeTotal,
+      },
+    };
+
+    guardarResultadoPrueba("MMSE", resultado);
+
+    if (pacienteActual) {
+      const nuevaPrueba = {
+        tipo: "Mini-Mental",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntajeTotal,
+        detalle: [
+          `Puntaje Conocimientos: ${puntajeConocimiento}`,
+          `Interpretación: ${interpretacion}`,
+        ],
+      };
+
+      const pruebasActuales = pacienteActual.pruebas || [];
+
+      const pacienteActualizado = {
+        ...pacienteActual,
+        pruebas: [...pruebasActuales, nuevaPrueba],
+      };
+
+      setPacienteActual(pacienteActualizado);
     }
 
-    const nuevaPrueba = {
-      tipo: "Mini-Mental",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: Number(puntajeConocimiento),
-      detalle: [
-        `Puntaje Conocimientos: ${puntajeConocimiento}`,
-        `Interpretación: ${
-          puntajeConocimiento <= 24
-            ? "Probable deterioro cognitivo"
-            : "Sin deterioro cognitivo"
-        }`,
-      ],
-    };
+    Alert.alert("✅ Éxito", `MMSE guardado\nPuntaje: ${puntajeTotal}/30\n${interpretacion}`);
 
-    const pruebasActuales = pacienteActual.pruebas || [];
-
-    const pacienteActualizado = {
-      ...pacienteActual,
-      pruebas: [...pruebasActuales, nuevaPrueba],
-    };
-
-    setPacienteActual(pacienteActualizado);
-
-    Alert.alert("Éxito", "Mini-Mental guardado correctamente");
-
-    setScreen("Resumen");
+    setScreen("Agendar Cita");
   };
 
   return (

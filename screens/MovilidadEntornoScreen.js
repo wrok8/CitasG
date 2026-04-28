@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
-export default function MovilidadEntornoScreen({
-  setScreen,
-  pacienteActual,
-  setPacienteActual,
-}) {
+export default function MovilidadEntornoScreen({ setScreen }) {
+
+  const { actualizarDatosCita } = useContext(EvaluationContext);
+
   const preguntas = [
     "En su hogar existe espacio suficiente para permitir su libre movilidad",
     "Su vivienda está adaptada para persona mayor",
@@ -59,11 +59,6 @@ export default function MovilidadEntornoScreen({
   };
 
   const guardarEvaluacion = () => {
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
-
     if (respuestas.includes(null)) {
       Alert.alert("Error", "Debe responder todas las preguntas");
       return;
@@ -71,34 +66,24 @@ export default function MovilidadEntornoScreen({
 
     const { positivas, negativas, riesgo } = calcularResultado();
 
-    const nuevaPrueba = {
-      tipo: "Movilidad en el Entorno",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: negativas,
-      detalle: [
-        "Respuestas positivas: " + positivas,
-        "Respuestas negativas: " + negativas,
-        "Nivel de riesgo: " + riesgo,
-      ],
-    };
-
-    const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
-      ? [...pacienteActual.pruebas, nuevaPrueba]
-      : [nuevaPrueba];
-
-    const pacienteActualizado = {
-      ...pacienteActual,
-      pruebas: pruebasActualizadas,
-    };
-
-    setPacienteActual(pacienteActualizado);
+    // 🔥 GUARDAR CORRECTO (igual que las otras pruebas)
+    actualizarDatosCita({
+      evaluacionesResultados: {
+        MovilidadEntorno: {
+          nombre: "Movilidad en el Entorno",
+          puntaje: negativas,
+          puntajeMax: preguntas.length,
+          interpretacion: `Positivas: ${positivas}, Negativas: ${negativas}, Riesgo: ${riesgo}`,
+        },
+      },
+    });
 
     Alert.alert(
       "Evaluación Guardada",
-      "Riesgo: " + riesgo
+      `Riesgo: ${riesgo}`
     );
 
-    setScreen("Resumen");
+    setScreen("Agendar Cita");
   };
 
   const { positivas, negativas, riesgo } = calcularResultado();
@@ -153,24 +138,11 @@ export default function MovilidadEntornoScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  row: {
-    marginBottom: 15,
-  },
-  pregunta: {
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  opciones: {
-    flexDirection: "row",
-  },
+  container: { padding: 20 },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  row: { marginBottom: 15 },
+  pregunta: { fontWeight: "bold", marginBottom: 5 },
+  opciones: { flexDirection: "row" },
   option: {
     padding: 8,
     marginRight: 10,

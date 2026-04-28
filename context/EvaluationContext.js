@@ -3,16 +3,16 @@ import React, { createContext, useState } from "react";
 export const EvaluationContext = createContext();
 
 export const EvaluationProvider = ({ children }) => {
-  // ── Datos del paciente en cita actual ───────────────────────────────────
+
 
   const [citaEnProgreso, setCitaEnProgreso] = useState({
-    // Datos básicos
+
     nombre:             "",
     contacto:           "",
     email:              "",
     telefono:           "",
 
-    // Datos de la cita
+
     fecha:              new Date(),
     hora:               new Date(),
     medico:             "",
@@ -20,7 +20,7 @@ export const EvaluationProvider = ({ children }) => {
     motivo:             "",
     sintomas:           "",
 
-    // Evaluaciones activadas (categorías)
+
     evaluacionesActivas: {
       Cognitivo:        false,
       Afectivo:         false,
@@ -29,16 +29,11 @@ export const EvaluationProvider = ({ children }) => {
       Entorno:          false,
     },
 
-    // ⭐ RESULTADOS DE EVALUACIONES - CADA PRUEBA POR SEPARADO ⭐
-    // Estructura: { "nombrePrueba": { datos }, "nombrePrueba2": { datos } }
     evaluacionesResultados: {},
   });
 
-  // ── Funciones de actualización ─────────────────────────────────────────
+ 
 
-  /**
-   * Actualizar datos básicos de la cita (paciente, médico, fecha, etc.)
-   */
   const actualizarDatosCita = (datos) => {
     setCitaEnProgreso((prev) => ({
       ...prev,
@@ -46,9 +41,7 @@ export const EvaluationProvider = ({ children }) => {
     }));
   };
 
-  /**
-   * Activar/desactivar una categoría de evaluación
-   */
+
   const toggleEvaluacion = (categoria, valor) => {
     setCitaEnProgreso((prev) => ({
       ...prev,
@@ -60,45 +53,33 @@ export const EvaluationProvider = ({ children }) => {
   };
 
   /**
-   * Guardar resultado de una PRUEBA INDIVIDUAL (no por categoría)
    * 
    * @param {string} nombrePrueba - "OARS", "MoCA", "GDS-15", "Katz", etc.
    * @param {object} resultado - { nombre, puntaje, puntajeMax, interpretacion, fecha, hora, detalles }
-   * 
-   * EJEMPLO:
-   *   guardarResultadoPrueba("OARS", { nombre: "OARS", puntaje: 21, puntajeMax: 30, ... })
-   *   guardarResultadoPrueba("GDS-15", { nombre: "GDS-15", puntaje: 10, puntajeMax: 15, ... })
    */
   const guardarResultadoPrueba = (nombrePrueba, resultado) => {
-    console.log(`📊 Guardando prueba ${nombrePrueba}:`, resultado);
     setCitaEnProgreso((prev) => ({
       ...prev,
       evaluacionesResultados: {
         ...prev.evaluacionesResultados,
-        [nombrePrueba]: resultado, // ⭐ Clave: nombre de la prueba, no categoría
+        [nombrePrueba]: resultado, 
       },
     }));
   };
 
-  /**
-   * Obtener resultado de una PRUEBA específica
-   */
+
   const obtenerResultadoPrueba = (nombrePrueba) => {
     return citaEnProgreso.evaluacionesResultados[nombrePrueba] || null;
   };
 
-  /**
-   * Obtener todas las pruebas realizadas como array
-   */
+
   const obtenerTodasLasPruebas = () => {
     return Object.entries(citaEnProgreso.evaluacionesResultados).map(
       ([nombre, datos]) => ({ nombre, ...datos })
     );
   };
 
-  /**
-   * Eliminar una prueba específica
-   */
+
   const eliminarPrueba = (nombrePrueba) => {
     setCitaEnProgreso((prev) => {
       const nuevoResultados = { ...prev.evaluacionesResultados };
@@ -110,9 +91,7 @@ export const EvaluationProvider = ({ children }) => {
     });
   };
 
-  /**
-   * Limpiar toda la cita en progreso (después de agendar o cancelar)
-   */
+
   const limpiarCitaEnProgreso = () => {
     setCitaEnProgreso({
       nombre:             "",
@@ -136,9 +115,7 @@ export const EvaluationProvider = ({ children }) => {
     });
   };
 
-  /**
-   * Obtener objeto completo para guardar en Firebase
-   */
+
   const obtenerCitaCompleta = () => {
     return {
       ...citaEnProgreso,
@@ -154,20 +131,18 @@ export const EvaluationProvider = ({ children }) => {
     };
   };
 
-  // ── Provider value ─────────────────────────────────────────────────────
-
   const value = {
-    // Estado
+
     citaEnProgreso,
     setCitaEnProgreso,
 
-    // Métodos
+
     actualizarDatosCita,
     toggleEvaluacion,
-    guardarResultadoPrueba,        // ⭐ CAMBIO: por prueba individual
-    obtenerResultadoPrueba,        // ⭐ CAMBIO: obtener prueba individual
-    obtenerTodasLasPruebas,        // ⭐ NUEVO: obtener todas las pruebas
-    eliminarPrueba,                // ⭐ NUEVO: eliminar una prueba
+    guardarResultadoPrueba,        
+    obtenerResultadoPrueba,        
+    obtenerTodasLasPruebas,        
+    eliminarPrueba,                
     limpiarCitaEnProgreso,
     obtenerCitaCompleta,
   };

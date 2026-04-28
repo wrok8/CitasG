@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function LawtonScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState({
     telefono: null,
     transporte: null,
@@ -50,6 +53,21 @@ export default function LawtonScreen({
 
     const puntajeFinal = calcularPuntaje();
     const interpretacion = interpretarResultado(puntajeFinal);
+
+    const resultado = {
+      nombre: "Lawton",
+      puntaje: puntajeFinal,
+      puntajeMax: 8,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: respuestas,
+    };
+
+    guardarResultadoPrueba("Lawton", resultado);
 
     const nuevaEvaluacion = {
       tipo: "Índice de Lawton",

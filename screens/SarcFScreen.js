@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -7,14 +7,16 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function SarcFScreen({
   pacienteActual,
   setPacienteActual,
-  pacientes,
-  setPacientes,
   setScreen,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState({
     fuerza: null,
     caminar: null,
@@ -23,66 +25,91 @@ export default function SarcFScreen({
     caidas: null,
   });
 
+  // 🔥 SENSOR PARA REINICIAR
+  useEffect(() => {
+    let lastShake = 0;
+
+    const subscription = Accelerometer.addListener((data) => {
+      const { x, y, z } = data;
+      const total = Math.abs(x) + Math.abs(y) + Math.abs(z);
+
+      if (total > 2.2) {
+        const now = Date.now();
+        if (now - lastShake > 1500) {
+          lastShake = now;
+
+          setRespuestas({
+            fuerza: null,
+            caminar: null,
+            silla: null,
+            escaleras: null,
+            caidas: null,
+          });
+
+          Alert.alert(
+            "Reinicio",
+            "La prueba fue reiniciada por movimiento del dispositivo"
+          );
+        }
+      }
+    });
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => subscription.remove();
+  }, []);
+
   const seleccionar = (campo, valor) => {
     setRespuestas({ ...respuestas, [campo]: valor });
   };
 
   const calcularPuntaje = () => {
-    let total = 0;
-    Object.values(respuestas).forEach((valor) => {
-      total += valor;
-    });
-    return total;
+    return Object.values(respuestas).reduce((sum, val) => sum + val, 0);
   };
 
- const guardarDatos = () => {
-  if (!pacienteActual) {
-    Alert.alert("Error", "No hay paciente seleccionado");
-    return;
-  }
+  const guardarDatos = () => {
+    if (Object.values(respuestas).includes(null)) {
+      Alert.alert("Error", "Contesta todas las preguntas");
+      return;
+    }
 
-  if (Object.values(respuestas).includes(null)) {
-    Alert.alert("Error", "Contesta todas las preguntas");
-    return;
-  }
+    const puntaje = calcularPuntaje();
 
-  const puntaje = calcularPuntaje();
+    const interpretacion =
+      puntaje >= 4
+        ? "Alta probabilidad de sarcopenia"
+        : "Baja probabilidad de sarcopenia";
 
-  const interpretacion =
-    puntaje >= 4
-      ? "Alta probabilidad de sarcopenia"
-      : "Baja probabilidad de sarcopenia";
+    // 🔥 FORMATO CORRECTO PARA TU SISTEMA
+    const resultado = {
+      nombre: "SARC-F",
+      puntaje: puntaje,
+      puntajeMax: 10,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: respuestas,
+    };
 
-  const nuevaPrueba = {
-    tipo: "SARC-F",
-    fecha: new Date().toLocaleDateString(),
-    puntaje: puntaje,
-    detalle: [
-      "Interpretación: " + interpretacion,
-    ],
+
+    guardarResultadoPrueba("SARC-F", resultado);
+
+
+    setPacienteActual((prev) => ({
+      ...prev,
+      pruebas: [...(prev?.pruebas || []), resultado],
+    }));
+
+    Alert.alert(
+      "SARC-F Guardado",
+      `Puntaje: ${puntaje}\n${interpretacion}`
+    );
+
+    setScreen("Agendar Cita");
   };
-
-  // 🔥 Agregar al array pruebas (misma lógica que tus otras evaluaciones)
-  const pruebasActualizadas = Array.isArray(pacienteActual.pruebas)
-    ? [...pacienteActual.pruebas, nuevaPrueba]
-    : [nuevaPrueba];
-
-  const pacienteActualizado = {
-    ...pacienteActual,
-    pruebas: pruebasActualizadas,
-  };
-
-  // Actualizar pacienteActual
-  setPacienteActual(pacienteActualizado);
-
-  Alert.alert(
-    "SARC-F Guardado",
-    "Puntaje: " + puntaje + "\n" + interpretacion
-  );
-
-  // 🔥 Regresa al Resumen (igual que tus otras pruebas)
-  setScreen("Resumen");
-};
 
   return (
     <ScrollView style={styles.container}>
@@ -177,6 +204,7 @@ const styles = StyleSheet.create({
 
   textoBoton: {
     textAlign: "center",
+    color: "black",
   },
 
   botonGuardar: {

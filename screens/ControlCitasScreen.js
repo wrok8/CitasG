@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -22,7 +21,7 @@ import { registrarMovimiento, initBitacora } from "../utils/bitacora";
 const SCREEN_W = Dimensions.get("window").width - 32;
 const USER_SELECTED = "@usuario_seleccionado";
 
-// ── Colores de status ──────────────────────────────────────────────────────────
+
 const STATUS_CONFIG = {
   agendada:   { color: "#1565C0", bg: "#E3F2FD", label: " Agendada"   },
   "en curso": { color: "#E65100", bg: "#FFF3E0", label: " En Curso"   },
@@ -128,7 +127,6 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
     }
   };
 
-  /** Re-agenda la cita seleccionada */
   const reagendarCita = async () => {
     if (!citaSeleccionada) return;
     const nuevaFechaISO = nuevaFecha.toISOString();
@@ -289,7 +287,6 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
                Pacientes con citas agendadas ({citasAgendadas.length})
             </Text>
 
-            {/* Agrupar por paciente */}
             {(() => {
               const porPaciente = {};
               citas.forEach((c) => {

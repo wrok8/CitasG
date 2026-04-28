@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,12 +7,15 @@ import {
   Alert,
   Pressable,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const CESD7Screen = ({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) => {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState(new Array(7).fill(null));
 
   const preguntas = [
@@ -38,6 +41,11 @@ const CESD7Screen = ({
     setRespuestas(nuevasRespuestas);
   };
 
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje < 5) return "Normal";
+    return "Síntomas significativos";
+  };
+
   const calcularResultado = () => {
     if (respuestas.includes(null)) {
       Alert.alert("Atención", "Por favor responde todas las preguntas.");
@@ -45,33 +53,45 @@ const CESD7Screen = ({
     }
 
     const puntajeTotal = respuestas.reduce((a, b) => a + b, 0);
-    const interpretacion =
-      puntajeTotal < 5 ? "Normal" : "Síntomas significativos";
+    const interpretacion = obtenerInterpretacion(puntajeTotal);
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
-
-    const nuevaEvaluacion = {
-      tipo: "CESD-7",
-      fecha: new Date().toLocaleDateString(),
+    const resultado = {
+      nombre: "CESD-7",
       puntaje: puntajeTotal,
-      detalle: {
-        respuestas,
-        interpretacion,
+      puntajeMax: 21,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        respuestas: respuestas,
       },
     };
 
-    // 🔥 MISMA ESTRUCTURA QUE TUS OTRAS PRUEBAS
-    setPacienteActual((prev) => ({
-      ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
-    }));
+    guardarResultadoPrueba("CESD-7", resultado);
+
+    if (pacienteActual) {
+      const nuevaEvaluacion = {
+        tipo: "CESD-7",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntajeTotal,
+        detalle: {
+          respuestas,
+          interpretacion,
+        },
+      };
+
+      setPacienteActual((prev) => ({
+        ...prev,
+        pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      }));
+    }
 
     Alert.alert(
-      "Resultado",
-      `Puntaje: ${puntajeTotal} puntos\n${interpretacion}`
+      "✅ Resultado",
+      `Puntaje: ${puntajeTotal}/21\n${interpretacion}`
     );
 
     setScreen("Agendar Cita");

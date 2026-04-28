@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useContext } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -11,63 +11,56 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { FormField } from "../components/FormField";
 import { FormSection } from "../components/FormSection";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function MoCAScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [escolaridad, setEscolaridad] = useState("");
 
-  // VISUOESPACIAL
   const [trazado, setTrazado] = useState("");
   const [cubo, setCubo] = useState("");
   const [relojContorno, setRelojContorno] = useState("");
   const [relojNumeros, setRelojNumeros] = useState("");
   const [relojAgujas, setRelojAgujas] = useState("");
 
-  // IDENTIFICACION
   const [animal1, setAnimal1] = useState("");
   const [animal2, setAnimal2] = useState("");
   const [animal3, setAnimal3] = useState("");
 
-  // ATENCION
   const [digitoDirecto, setDigitoDirecto] = useState("");
   const [digitoInverso, setDigitoInverso] = useState("");
   const [letraA, setLetraA] = useState("");
   const [restasCorrectas, setRestasCorrectas] = useState("");
 
-  // LENGUAJE
   const [frase1, setFrase1] = useState("");
   const [frase2, setFrase2] = useState("");
   const [fluidezF, setFluidezF] = useState("");
 
-  // ABSTRACCION
   const [abstraccion1, setAbstraccion1] = useState("");
   const [abstraccion2, setAbstraccion2] = useState("");
 
-  // RECUERDO
   const [recuerdo, setRecuerdo] = useState("");
 
-  // ORIENTACION
   const [orientacion, setOrientacion] = useState("");
 
   const total = useMemo(() => {
     let score = 0;
 
-    // Visuoespacial (5)
     score += Number(trazado || 0);
     score += Number(cubo || 0);
     score += Number(relojContorno || 0);
     score += Number(relojNumeros || 0);
     score += Number(relojAgujas || 0);
 
-    // Identificacion (3)
     score += Number(animal1 || 0);
     score += Number(animal2 || 0);
     score += Number(animal3 || 0);
 
-    // Atención
     score += Number(digitoDirecto || 0);
     score += Number(digitoInverso || 0);
     score += Number(letraA || 0);
@@ -77,22 +70,17 @@ export default function MoCAScreen({
     else if (restas >= 2) score += 2;
     else if (restas === 1) score += 1;
 
-    // Lenguaje
     score += Number(frase1 || 0);
     score += Number(frase2 || 0);
     if (Number(fluidezF) > 11) score += 1;
 
-    // Abstraccion
     score += Number(abstraccion1 || 0);
     score += Number(abstraccion2 || 0);
 
-    // Recuerdo
     score += Number(recuerdo || 0);
 
-    // Orientacion
     score += Number(orientacion || 0);
 
-    // Escolaridad
     if (Number(escolaridad) <= 12 && escolaridad !== "") {
       score += 1;
     }
@@ -121,29 +109,61 @@ export default function MoCAScreen({
     escolaridad,
   ]);
 
-  const handleGuardar = () => {
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente activo");
-      return;
-    }
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje >= 26) return "Cognición normal";
+    if (puntaje >= 18) return "Deterioro cognitivo leve";
+    return "Deterioro cognitivo moderado a severo";
+  };
 
-    const nuevaPrueba = {
-      tipo: "MoCA",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: total,
-      detalle: [`Puntaje total: ${total}/30`],
+  const handleGuardar = () => {
+    const puntajeTotal = total;
+    const interpretacion = obtenerInterpretacion(puntajeTotal);
+
+    const resultado = {
+      nombre: "MoCA",
+      puntaje: puntajeTotal,
+      puntajeMax: 30,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        visuoespacial: Number(trazado || 0) + Number(cubo || 0) + Number(relojContorno || 0) + Number(relojNumeros || 0) + Number(relojAgujas || 0),
+        identificacion: Number(animal1 || 0) + Number(animal2 || 0) + Number(animal3 || 0),
+        atencion: Number(digitoDirecto || 0) + Number(digitoInverso || 0) + Number(letraA || 0),
+        restas: Number(restasCorrectas || 0),
+        lenguaje: Number(frase1 || 0) + Number(frase2 || 0),
+        fluidez: Number(fluidezF || 0),
+        abstraccion: Number(abstraccion1 || 0) + Number(abstraccion2 || 0),
+        recuerdo: Number(recuerdo || 0),
+        orientacion: Number(orientacion || 0),
+        escolaridad: Number(escolaridad || 0),
+      },
     };
 
-    setPacienteActual({
-      ...pacienteActual,
-      pruebas: [
-        ...(pacienteActual.pruebas || []),
-        nuevaPrueba,
-      ],
-    });
+    guardarResultadoPrueba("MoCA", resultado);
 
-    Alert.alert("Éxito", "MoCA guardado correctamente");
-    setScreen("Resumen");
+    if (pacienteActual) {
+      const nuevaPrueba = {
+        tipo: "MoCA",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntajeTotal,
+        detalle: [`Puntaje total: ${puntajeTotal}/30`],
+      };
+
+      setPacienteActual({
+        ...pacienteActual,
+        pruebas: [
+          ...(pacienteActual.pruebas || []),
+          nuevaPrueba,
+        ],
+      });
+    }
+
+    Alert.alert("✅ Éxito", `MoCA guardado\nPuntaje: ${puntajeTotal}/30\n${interpretacion}`);
+    setScreen("Agendar Cita");
   };
 
   return (

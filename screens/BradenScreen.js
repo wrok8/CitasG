@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const BRADEN_TABLE = [
   {
@@ -65,6 +66,8 @@ const BRADEN_TABLE = [
 ];
 
 export default function BradenScreen({ setScreen, pacienteActual, setPacienteActual }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState(
     BRADEN_TABLE.reduce((acc, c) => ({ ...acc, [c.criterio]: null }), {})
   );
@@ -79,17 +82,27 @@ export default function BradenScreen({ setScreen, pacienteActual, setPacienteAct
       return;
     }
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
-    }
-
     const puntajeTotal = Object.values(respuestas).reduce((sum, val) => sum + val, 0);
 
     let interpretacion = "";
     if (puntajeTotal < 12) interpretacion = "Alto riesgo";
     else if (puntajeTotal <= 14) interpretacion = "Riesgo medio";
     else interpretacion = "Bajo riesgo";
+
+    const resultado = {
+      nombre: "Braden",
+      puntaje: puntajeTotal,
+      puntajeMax: 24,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: respuestas,
+    };
+
+    guardarResultadoPrueba("Braden", resultado);
 
     const nuevaEvaluacion = {
       tipo: "Escala de Braden",

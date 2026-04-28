@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function KatzScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [answers, setAnswers] = useState({
     bath: null,
     dress: null,
@@ -29,14 +32,16 @@ export default function KatzScreen({
     }));
   };
 
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje === 6) return "Independiente";
+    if (puntaje >= 4) return "Dependencia leve";
+    if (puntaje >= 2) return "Dependencia moderada";
+    return "Dependencia severa";
+  };
+
   const guardarPrueba = () => {
     if (Object.values(answers).includes(null)) {
       Alert.alert("Atención", "Responde todas las preguntas.");
-      return;
-    }
-
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
       return;
     }
 
@@ -44,29 +49,44 @@ export default function KatzScreen({
       (val) => val === "si"
     ).length;
 
-    let interpretacion = "";
-    if (puntaje === 6) interpretacion = "Independiente";
-    else if (puntaje >= 4) interpretacion = "Dependencia leve";
-    else if (puntaje >= 2) interpretacion = "Dependencia moderada";
-    else interpretacion = "Dependencia severa";
+    const interpretacion = obtenerInterpretacion(puntaje);
 
-    const nuevaEvaluacion = {
-      tipo: "Índice de Katz",
-      fecha: new Date().toLocaleDateString(),
+    const resultado = {
+      nombre: "Katz",
       puntaje: puntaje,
-      detalle: {
+      puntajeMax: 6,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
         respuestas: answers,
-        interpretacion,
       },
     };
 
-    setPacienteActual((prev) => ({
-      ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
-    }));
+    guardarResultadoPrueba("Katz", resultado);
+
+    if (pacienteActual) {
+      const nuevaEvaluacion = {
+        tipo: "Índice de Katz",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntaje,
+        detalle: {
+          respuestas: answers,
+          interpretacion,
+        },
+      };
+
+      setPacienteActual((prev) => ({
+        ...prev,
+        pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      }));
+    }
 
     Alert.alert(
-      "Prueba Guardada",
+      "✅ Prueba Guardada",
       `Puntaje: ${puntaje}/6\n${interpretacion}`
     );
 
@@ -77,7 +97,6 @@ export default function KatzScreen({
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Índice de Katz</Text>
 
-      {/* 1 BAÑO */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>
           1) Baño (Esponja, regadera o tina)
@@ -107,7 +126,6 @@ export default function KatzScreen({
         </View>
       </View>
 
-      {/* 2 VESTIDO */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>2) Vestido</Text>
         <Text style={styles.descripcion}>
@@ -135,7 +153,6 @@ export default function KatzScreen({
         </View>
       </View>
 
-      {/* 3 SANITARIO */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>3) Uso del Sanitario</Text>
         <Text style={styles.descripcion}>
@@ -163,7 +180,6 @@ export default function KatzScreen({
         </View>
       </View>
 
-      {/* 4 TRANSFERENCIAS */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>4) Transferencias</Text>
         <Text style={styles.descripcion}>
@@ -191,7 +207,6 @@ export default function KatzScreen({
         </View>
       </View>
 
-      {/* 5 CONTINENCIA */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>5) Continencia</Text>
         <Text style={styles.descripcion}>
@@ -219,7 +234,6 @@ export default function KatzScreen({
         </View>
       </View>
 
-      {/* 6 ALIMENTACIÓN */}
       <View style={styles.card}>
         <Text style={styles.pregunta}>6) Alimentación</Text>
         <Text style={styles.descripcion}>

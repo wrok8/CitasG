@@ -46,12 +46,15 @@ import PersonalScreen from "./screens/PersonalScreen";
 import WeatherScreen from "./screens/WeatherScreen";
 import UsuarioScreen from "./screens/UsuarioScreen";
 import PreferenciasPacienteScreen from "./screens/PreferenciasPacienteScreen";
+import FrailScreen from "./screens/FrailScreen";
+import SPPBScreen from "./screens/SPPBScreen";
 
 import CognitivoMenuScreen from "./screens/CognitivoMenuScreen";
 import AfectivoMenuScreen from "./screens/AfectivoMenuScreen";
 import FuncionamientoMenuScreen from "./screens/FuncionamientoMenuScreen";
 import NutricionalMenuScreen from "./screens/NutricionalMenuScreen";
 import CESD7Screen from "./screens/CESD7Screen";
+
 
 import CustomDrawer from "./components/CustomDrawer";
 
@@ -108,8 +111,8 @@ function MainApp() {
       case "Mapa":
         return <MapScreen />;
       
-      case "Signos Vitales":
-        return <SignosVitalesScreen />;
+      case "SignosVitales":
+        return <SignosVitalesScreen setScreen={setScreen} />
 
       case "Clima":
         return <WeatherScreen />;
@@ -179,6 +182,30 @@ function MainApp() {
       case "MoCA":
         return (
           <MoCAScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+      case "Audicion":
+        return (
+          <AudicionScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+      case "FRAIL":
+        return (
+          <FrailScreen
+            setScreen={setScreen}
+            pacienteActual={pacienteActual}
+            setPacienteActual={setPacienteActual}
+          />
+        );
+      case "SPPB":
+        return (
+          <SPPBScreen
             setScreen={setScreen}
             pacienteActual={pacienteActual}
             setPacienteActual={setPacienteActual}

@@ -30,17 +30,29 @@ export default function EntornoMenuScreen({ setScreen }) {
         3. Movilidad en el entorno
       </Text>
     </TouchableOpacity>
+    {/* Botón volver */}
+    <TouchableOpacity
+      style={styles.backButton}
+      onPress={() => setScreen("Agendar Cita")}
+    >
+      <Text style={styles.backText}>Volver</Text>
+    </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { 
+    flex: 1, 
+    padding: 20,
+    backgroundColor: "#f4f6f8"
+  },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 25,
     color: "#0D47A1",
+    textAlign: "center"
   },
   button: {
     backgroundColor: "#1565C0",
@@ -48,12 +60,22 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginVertical: 8,
   },
-  disabled: {
-    backgroundColor: "#90A4AE",
-  },
   buttonText: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
+  },
+  backButton: {
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#1565C0",
+    alignItems: "center",
+  },
+  backText: {
+    color: "#1565C0",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

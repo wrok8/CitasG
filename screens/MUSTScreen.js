@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Alert,
   ScrollView,
@@ -9,34 +9,56 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Accelerometer } from "expo-sensors";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 export default function MUSTScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [peso, setPeso] = useState("");
   const [talla, setTalla] = useState("");
   const [perdidaPesoPct, setPerdidaPesoPct] = useState("");
   const [estaEnfermo, setEstaEnfermo] = useState(false);
   const [sintomas, setSintomas] = useState("");
 
-  // 🚨 Si no hay paciente seleccionado
-  if (!pacienteActual) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>No hay paciente seleccionado</Text>
-        <Pressable
-          style={styles.btnGuardar}
-          onPress={() => setScreen("Agendar Cita")}
-        >
-          <Text style={styles.buttonText}>IR A REGISTRAR PACIENTE</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
+  // 🔥 SENSOR PARA REINICIAR
+  useEffect(() => {
+    let lastShake = 0;
 
-  // 🔢 Calcular puntaje MUST
+    const subscription = Accelerometer.addListener((data) => {
+      const { x, y, z } = data;
+      const total = Math.abs(x) + Math.abs(y) + Math.abs(z);
+
+      if (total > 2.2) {
+        const now = Date.now();
+        if (now - lastShake > 1500) {
+          lastShake = now;
+
+          // 🔄 RESET
+          setPeso("");
+          setTalla("");
+          setPerdidaPesoPct("");
+          setEstaEnfermo(false);
+          setSintomas("");
+
+          Alert.alert(
+            "Reinicio",
+            "La prueba fue reiniciada por movimiento del dispositivo"
+          );
+        }
+      }
+    });
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => subscription.remove();
+  }, []);
+
+  // 🔢 CALCULAR MUST
   const calcularMUST = () => {
     let puntos = 0;
 
@@ -74,7 +96,7 @@ export default function MUSTScreen({
     } else if (puntos >= 2) {
       riesgo = "Alto";
       pauta =
-        "Llevar a cabo una intervención y acción directa para evitar complicaciones asociadas.";
+        "Llevar a cabo una intervención y acción directa para evitar complicaciones.";
     }
 
     return {
@@ -85,15 +107,10 @@ export default function MUSTScreen({
     };
   };
 
-  // 💾 Guardar prueba
+  // 💾 GUARDAR
   const handleGuardar = () => {
     if ([peso, talla].includes("")) {
       Alert.alert("Error", "Completa peso y talla");
-      return;
-    }
-
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
       return;
     }
 
@@ -104,13 +121,19 @@ export default function MUSTScreen({
       return;
     }
 
-    const nuevaEvaluacion = {
-      tipo: "MUST",
-      fecha: new Date().toLocaleDateString(),
+    // 🔥 FORMATO PARA EL CONTEXT (IMPORTANTE)
+    const resultadoContexto = {
+      nombre: "MUST",
       puntaje: resultado.puntos,
-      detalle: {
+      puntajeMax: 6,
+      interpretacion: resultado.riesgo,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
         imc: resultado.imc,
-        riesgo: resultado.riesgo,
         pauta: resultado.pauta,
         peso,
         talla,
@@ -120,10 +143,13 @@ export default function MUSTScreen({
       },
     };
 
-    // 🔥 EXACTAMENTE igual que Fluencia y Katz
+    // ✅ GUARDADO REAL (EL QUE USA LA APP)
+    guardarResultadoPrueba("MUST", resultadoContexto);
+
+    // (Opcional) compatibilidad con pacienteActual
     setPacienteActual((prev) => ({
       ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      pruebas: [...(prev?.pruebas || []), resultadoContexto],
     }));
 
     Alert.alert(

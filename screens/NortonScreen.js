@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const NORTON_TABLE = [
   { criterio: "Estado físico", opciones: ["Muy enfermo", "Enfermo", "Algo limitado", "Bueno"] },
@@ -10,6 +11,8 @@ const NORTON_TABLE = [
 ];
 
 export default function NortonScreen({ setScreen, pacienteActual, setPacienteActual }) {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [respuestas, setRespuestas] = useState(
     NORTON_TABLE.reduce((acc, c) => ({ ...acc, [c.criterio]: null }), {})
   );
@@ -24,13 +27,23 @@ export default function NortonScreen({ setScreen, pacienteActual, setPacienteAct
       return;
     }
 
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado.");
-      return;
-    }
-
     const puntajeTotal = Object.values(respuestas).reduce((sum, val) => sum + val, 0);
     let interpretacion = puntajeTotal <= 12 ? "ALTO RIESGO" : puntajeTotal <= 16 ? "RIESGO MODERADO" : "RIESGO MÍNIMO";
+
+    const resultado = {
+      nombre: "Norton",
+      puntaje: puntajeTotal,
+      puntajeMax: 20,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: respuestas,
+    };
+
+    guardarResultadoPrueba("Norton", resultado);
 
     const nuevaEvaluacion = {
       tipo: "Escala de Norton",
@@ -39,7 +52,6 @@ export default function NortonScreen({ setScreen, pacienteActual, setPacienteAct
       detalle: { respuestas, interpretacion },
     };
 
-    // Guardamos la prueba en pacienteActual
     setPacienteActual(prev => ({
       ...prev,
       pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],

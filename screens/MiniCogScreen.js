@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Alert,
   Button,
@@ -9,12 +9,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { EvaluationContext } from "../context/EvaluationContext";
 
 const MiniCogScreen = ({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) => {
+  const { guardarResultadoPrueba } = useContext(EvaluationContext);
+
   const [palabra1, setPalabra1] = useState("");
   const [palabra2, setPalabra2] = useState("");
   const [palabra3, setPalabra3] = useState("");
@@ -42,41 +45,70 @@ const MiniCogScreen = ({
     return puntos;
   };
 
+  const obtenerInterpretacion = (puntaje) => {
+    if (puntaje >= 4) return "Cognición normal";
+    if (puntaje >= 2) return "Deterioro leve";
+    return "Deterioro probable";
+  };
+
   const handleEnviar = () => {
-    if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
-      return;
+    const puntajeTotal = calcularPuntos();
+    const interpretacion = obtenerInterpretacion(puntajeTotal);
+
+    const resultado = {
+      nombre: "Mini-Cog",
+      puntaje: puntajeTotal,
+      puntajeMax: 5,
+      interpretacion: interpretacion,
+      fecha: new Date().toLocaleDateString("es-MX"),
+      hora: new Date().toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      detalles: {
+        palabra1: palabra1,
+        palabra2: palabra2,
+        palabra3: palabra3,
+        intentos: {
+          palabra1: attempts.palabra1,
+          palabra2: attempts.palabra2,
+          palabra3: attempts.palabra3,
+        },
+        dibujoReloj: attempts.dibujoReloj,
+      },
+    };
+
+    guardarResultadoPrueba("Mini-Cog", resultado);
+
+    if (pacienteActual) {
+      const nuevaPrueba = {
+        tipo: "Mini-Cog",
+        fecha: new Date().toLocaleDateString(),
+        puntaje: puntajeTotal,
+        detalle: [
+          `Palabra 1: ${palabra1}`,
+          `Palabra 2: ${palabra2}`,
+          `Palabra 3: ${palabra3}`,
+          `Intento 1: ${attempts.palabra1 ? "Correcto" : "Incorrecto"}`,
+          `Intento 2: ${attempts.palabra2 ? "Correcto" : "Incorrecto"}`,
+          `Intento 3: ${attempts.palabra3 ? "Correcto" : "Incorrecto"}`,
+          `Dibujo Reloj: ${attempts.dibujoReloj ? "Correcto" : "Incorrecto"}`,
+        ],
+      };
+
+      const pruebasActuales = pacienteActual.pruebas || [];
+
+      const pacienteActualizado = {
+        ...pacienteActual,
+        pruebas: [...pruebasActuales, nuevaPrueba],
+      };
+
+      setPacienteActual(pacienteActualizado);
     }
 
-    const nuevaPrueba = {
-      tipo: "Mini-Cog",
-      fecha: new Date().toLocaleDateString(),
-      puntaje: calcularPuntos(),
-      detalle: [
-        `Palabra 1: ${palabra1}`,
-        `Palabra 2: ${palabra2}`,
-        `Palabra 3: ${palabra3}`,
-        `Intento 1: ${attempts.palabra1 ? "Correcto" : "Incorrecto"}`,
-        `Intento 2: ${attempts.palabra2 ? "Correcto" : "Incorrecto"}`,
-        `Intento 3: ${attempts.palabra3 ? "Correcto" : "Incorrecto"}`,
-        `Dibujo Reloj: ${
-          attempts.dibujoReloj ? "Correcto" : "Incorrecto"
-        }`,
-      ],
-    };
+    Alert.alert("✅ Éxito", `Mini-Cog guardado\nPuntaje: ${puntajeTotal}/5\n${interpretacion}`);
 
-    const pruebasActuales = pacienteActual.pruebas || [];
-
-    const pacienteActualizado = {
-      ...pacienteActual,
-      pruebas: [...pruebasActuales, nuevaPrueba],
-    };
-
-    setPacienteActual(pacienteActualizado);
-
-    Alert.alert("Éxito", "Mini-Cog guardado correctamente");
-
-    setScreen("Resumen");
+    setScreen("Agendar Cita");
   };
 
   return (
