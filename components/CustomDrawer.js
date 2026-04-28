@@ -36,28 +36,17 @@ export default function CustomDrawer({
       <Item label="Inicio" />
       <Item label="Agregar Personal" />
       <Item label="Agendar Cita" />
-      <Item label="Lista de Pacientes" />
+      <Item label="ControlCitas" />
       <Item label="Evaluaciones" />
-      <Item label="Perfil" />
       <Item label="Configuración" />
       <Item label="Mapa" />
-      <Item label="Signos Vitales" />
-      
-
-      <TouchableOpacity onPress={() => setScreen("Clima")}>
-      <Text>Clima</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setScreen("Usuarios")}>
-      <Text>👤 Usuarios</Text>
-     </TouchableOpacity>
+      <Item label="SignosVitales" />
+      <Item label="Usuarios" />
+      <Item label="Clima" />
+      <Item label="Preferencias Paciente" />
 
       <TouchableOpacity style={styles.logout} onPress={onLogout}>
         <Text style={styles.logoutText}>Salir</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setScreen("Preferencias Paciente")}>
-        <Text>⚙️ Preferencias Paciente</Text>
       </TouchableOpacity>
     </View>
   );
