@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function MovilidadEntornoScreen({
   setScreen,
@@ -36,9 +37,43 @@ export default function MovilidadEntornoScreen({
     "Camiones en buen estado",
   ];
 
-  const [respuestas, setRespuestas] = useState(
-    Array(preguntas.length).fill(null)
-  );
+  const respuestasIniciales = Array(preguntas.length).fill(null);
+
+  const [respuestas, setRespuestas] = useState(respuestasIniciales);
+
+  // SENSOR DE AGITADO
+  useEffect(() => {
+    let ultimaSacudida = 0;
+
+    const subscription = Accelerometer.addListener(
+      ({ x, y, z }) => {
+        const magnitud = Math.sqrt(x * x + y * y + z * z);
+
+        const ahora = Date.now();
+
+        if (magnitud > 1.8 && ahora - ultimaSacudida > 2000) {
+          ultimaSacudida = ahora;
+
+          Alert.alert(
+            "Borrar respuestas",
+            "Se detectó movimiento. ¿Deseas reiniciar la evaluación?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Sí, borrar",
+                onPress: () =>
+                  setRespuestas(respuestasIniciales),
+              },
+            ]
+          );
+        }
+      }
+    );
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => subscription.remove();
+  }, []);
 
   const seleccionar = (index, valor) => {
     const nuevas = [...respuestas];
@@ -47,8 +82,13 @@ export default function MovilidadEntornoScreen({
   };
 
   const calcularResultado = () => {
-    const positivas = respuestas.filter((r) => r === true).length;
-    const negativas = respuestas.filter((r) => r === false).length;
+    const positivas = respuestas.filter(
+      (r) => r === true
+    ).length;
+
+    const negativas = respuestas.filter(
+      (r) => r === false
+    ).length;
 
     let riesgo = "Bajo";
 
@@ -60,12 +100,18 @@ export default function MovilidadEntornoScreen({
 
   const guardarEvaluacion = () => {
     if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
       return;
     }
 
     if (respuestas.includes(null)) {
-      Alert.alert("Error", "Debe responder todas las preguntas");
+      Alert.alert(
+        "Error",
+        "Debe responder todas las preguntas"
+      );
       return;
     }
 
@@ -83,7 +129,6 @@ export default function MovilidadEntornoScreen({
       ],
     };
 
-    
     setPacienteActual((prev) => ({
       ...prev,
       pruebas: [
@@ -97,15 +142,21 @@ export default function MovilidadEntornoScreen({
       `Negativas: ${negativas}\nRiesgo: ${riesgo}`
     );
 
-    
     setScreen("Agendar Cita");
   };
 
-  const { positivas, negativas, riesgo } = calcularResultado();
+  const { positivas, negativas, riesgo } =
+    calcularResultado();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Movilidad en el Entorno</Text>
+      <Text style={styles.title}>
+        Movilidad en el Entorno
+      </Text>
+
+      <Text style={styles.sensorText}>
+        📳 Agita el dispositivo para borrar respuestas
+      </Text>
 
       {preguntas.map((pregunta, index) => (
         <View key={index} style={styles.row}>
@@ -117,9 +168,12 @@ export default function MovilidadEntornoScreen({
             <TouchableOpacity
               style={[
                 styles.option,
-                respuestas[index] === true && styles.selected,
+                respuestas[index] === true &&
+                  styles.selected,
               ]}
-              onPress={() => seleccionar(index, true)}
+              onPress={() =>
+                seleccionar(index, true)
+              }
             >
               <Text>Sí</Text>
             </TouchableOpacity>
@@ -127,9 +181,12 @@ export default function MovilidadEntornoScreen({
             <TouchableOpacity
               style={[
                 styles.option,
-                respuestas[index] === false && styles.selected,
+                respuestas[index] === false &&
+                  styles.selected,
               ]}
-              onPress={() => seleccionar(index, false)}
+              onPress={() =>
+                seleccionar(index, false)
+              }
             >
               <Text>No</Text>
             </TouchableOpacity>
@@ -138,15 +195,21 @@ export default function MovilidadEntornoScreen({
       ))}
 
       <Text style={styles.resultado}>
-        Positivas: {positivas} | Negativas: {negativas}
+        Positivas: {positivas} | Negativas:{" "}
+        {negativas}
       </Text>
 
       <Text style={styles.riesgo}>
         Nivel de Riesgo: {riesgo}
       </Text>
 
-      <TouchableOpacity style={styles.button} onPress={guardarEvaluacion}>
-        <Text style={styles.buttonText}>Guardar Evaluación</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={guardarEvaluacion}
+      >
+        <Text style={styles.buttonText}>
+          Guardar Evaluación
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -155,14 +218,26 @@ export default function MovilidadEntornoScreen({
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    backgroundColor: "#F4F6F8",
   },
   title: {
     fontSize: 22,
     fontWeight: "bold",
+    marginBottom: 15,
+    color: "#0D47A1",
+    textAlign: "center",
+  },
+  sensorText: {
+    textAlign: "center",
     marginBottom: 20,
+    color: "#666",
+    fontStyle: "italic",
   },
   row: {
     marginBottom: 15,
+    backgroundColor: "white",
+    padding: 12,
+    borderRadius: 10,
   },
   pregunta: {
     fontWeight: "bold",
@@ -176,6 +251,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: "#eee",
     borderRadius: 5,
+    minWidth: 60,
+    alignItems: "center",
   },
   selected: {
     backgroundColor: "#90caf9",
@@ -183,11 +260,14 @@ const styles = StyleSheet.create({
   resultado: {
     fontSize: 16,
     marginTop: 20,
+    textAlign: "center",
   },
   riesgo: {
     fontSize: 18,
     fontWeight: "bold",
     marginVertical: 10,
+    textAlign: "center",
+    color: "#0D47A1",
   },
   button: {
     backgroundColor: "#1565C0",
@@ -195,6 +275,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     marginTop: 20,
+    marginBottom: 30,
   },
   buttonText: {
     color: "white",

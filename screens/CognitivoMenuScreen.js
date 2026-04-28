@@ -6,6 +6,14 @@ export default function CognitivoMenuScreen({ setScreen }) {
     <View style={styles.container}>
       <Text style={styles.title}>Evaluaciones Cognitivas</Text>
 
+      {/* BOTÓN VOLVER */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => setScreen("Agendar Cita")}
+      >
+        <Text style={styles.backButtonText}>← Volver a Agenda</Text>
+      </TouchableOpacity>
+
       {/* Fluencia Verbal */}
       <TouchableOpacity
         style={styles.button}
@@ -26,6 +34,7 @@ export default function CognitivoMenuScreen({ setScreen }) {
         </Text>
       </TouchableOpacity>
 
+      {/* Mini-Mental */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setScreen("Mini-Mental")}
@@ -35,11 +44,14 @@ export default function CognitivoMenuScreen({ setScreen }) {
         </Text>
       </TouchableOpacity>
 
+      {/* MoCA */}
       <TouchableOpacity
         style={styles.button}
         onPress={() => setScreen("MoCA")}
       >
-        <Text style={styles.buttonText}>4. MoCA</Text>
+        <Text style={styles.buttonText}>
+          4. MoCA
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -51,6 +63,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#f4f6f8"
   },
+
   title: {
     fontSize: 22,
     fontWeight: "bold",
@@ -58,12 +71,28 @@ const styles = StyleSheet.create({
     color: "#0D47A1",
     textAlign: "center"
   },
+
+  backButton: {
+    backgroundColor: "#6C757D",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  backButtonText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+
   button: {
     backgroundColor: "#1565C0",
     padding: 18,
     borderRadius: 12,
     marginVertical: 8,
   },
+
   buttonText: {
     color: "white",
     textAlign: "center",

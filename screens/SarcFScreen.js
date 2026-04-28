@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function SarcFScreen({
   pacienteActual,
@@ -23,16 +24,66 @@ export default function SarcFScreen({
     caidas: null,
   });
 
+  const lastShake = useRef(0);
+
+  // 🔥 SENSOR DE AGITADO
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+
+    const subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const magnitud = Math.sqrt(x * x + y * y + z * z);
+
+      if (magnitud > 1.8) {
+        const now = Date.now();
+
+        if (now - lastShake.current > 1500) {
+          lastShake.current = now;
+
+          Alert.alert(
+            "Borrar respuestas",
+            "¿Deseas reiniciar la evaluación?",
+            [
+              {
+                text: "Cancelar",
+                style: "cancel",
+              },
+              {
+                text: "Sí, borrar",
+                onPress: () => reiniciarFormulario(),
+              },
+            ]
+          );
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  const reiniciarFormulario = () => {
+    setRespuestas({
+      fuerza: null,
+      caminar: null,
+      silla: null,
+      escaleras: null,
+      caidas: null,
+    });
+
+    Alert.alert("Reiniciado", "Las respuestas fueron borradas");
+  };
+
   const seleccionar = (campo, valor) => {
-    setRespuestas({ ...respuestas, [campo]: valor });
+    setRespuestas((prev) => ({
+      ...prev,
+      [campo]: valor,
+    }));
   };
 
   const calcularPuntaje = () => {
-    let total = 0;
-    Object.values(respuestas).forEach((valor) => {
-      total += valor;
-    });
-    return total;
+    return Object.values(respuestas).reduce(
+      (total, valor) => total + valor,
+      0
+    );
   };
 
   const guardarDatos = () => {
@@ -58,33 +109,26 @@ export default function SarcFScreen({
       fecha: new Date().toLocaleDateString(),
       puntaje: puntaje,
       maximo: 10,
-      detalle: [
-        `Interpretación: ${interpretacion}`,
-      ],
+      detalle: {
+        respuestas,
+        interpretacion,
+      },
     };
-
-    const pruebasActualizadas = Array.isArray(
-      pacienteActual.pruebas
-    )
-      ? [...pacienteActual.pruebas, nuevaPrueba]
-      : [nuevaPrueba];
 
     const pacienteActualizado = {
       ...pacienteActual,
-      pruebas: pruebasActualizadas,
+      pruebas: [...(pacienteActual?.pruebas || []), nuevaPrueba],
     };
 
-    // actualizar paciente actual
     setPacienteActual(pacienteActualizado);
 
-    // actualizar lista global de pacientes
-    const pacientesActualizados = pacientes.map((p) =>
-      p.id === pacienteActual.id
-        ? pacienteActualizado
-        : p
-    );
+    if (pacientes && setPacientes) {
+      const pacientesActualizados = pacientes.map((p) =>
+        p.id === pacienteActual.id ? pacienteActualizado : p
+      );
 
-    setPacientes(pacientesActualizados);
+      setPacientes(pacientesActualizados);
+    }
 
     Alert.alert(
       "SARC-F Guardado",
@@ -92,17 +136,59 @@ export default function SarcFScreen({
       [
         {
           text: "OK",
-          onPress: () => {
-            setScreen("Agendar Cita");
-          },
+          onPress: () => setScreen("Agendar Cita"),
         },
       ]
     );
   };
 
+  function botones(campo) {
+    return (
+      <View style={styles.opciones}>
+        {[0, 1, 2].map((valor) => (
+          <TouchableOpacity
+            key={valor}
+            style={[
+              styles.boton,
+              respuestas[campo] === valor &&
+                styles.botonActivo,
+            ]}
+            onPress={() => seleccionar(campo, valor)}
+          >
+            <Text
+              style={[
+                styles.textoBoton,
+                respuestas[campo] === valor &&
+                  styles.textoActivo,
+              ]}
+            >
+              {valor === 0
+                ? "Ninguna"
+                : valor === 1
+                ? "Alguna"
+                : "Mucha / Incapaz"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.titulo}>Evaluación SARC-F</Text>
+
+      <Text style={styles.sensorInfo}>
+        📳 Agita el dispositivo para borrar respuestas
+      </Text>
+
+      {pacienteActual?.nombre && (
+        <View style={styles.bannerPaciente}>
+          <Text style={styles.textoPaciente}>
+            👤 Paciente: {pacienteActual.nombre}
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.pregunta}>
         1. ¿Qué tanta dificultad tiene para levantar 4-5 kg?
@@ -129,51 +215,57 @@ export default function SarcFScreen({
       </Text>
       {botones("caidas")}
 
-      <TouchableOpacity style={styles.botonGuardar} onPress={guardarDatos}>
-        <Text style={styles.textoGuardar}>Guardar Resultado</Text>
+      <TouchableOpacity
+        style={styles.botonGuardar}
+        onPress={guardarDatos}
+      >
+        <Text style={styles.textoGuardar}>
+          Guardar Resultado
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
-
-  function botones(campo) {
-    return (
-      <View style={styles.opciones}>
-        {[0, 1, 2].map((valor) => (
-          <TouchableOpacity
-            key={valor}
-            style={[
-              styles.boton,
-              respuestas[campo] === valor && styles.botonActivo,
-            ]}
-            onPress={() => seleccionar(campo, valor)}
-          >
-            <Text style={styles.textoBoton}>
-              {valor === 0
-                ? "Ninguna"
-                : valor === 1
-                ? "Alguna"
-                : "Mucha / Incapaz"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    );
-  }
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#F4F6F8",
+  },
 
   titulo: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
     color: "#0D47A1",
+    textAlign: "center",
+  },
+
+  sensorInfo: {
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#666",
+    fontStyle: "italic",
+  },
+
+  bannerPaciente: {
+    backgroundColor: "#E3F2FD",
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  textoPaciente: {
+    fontWeight: "bold",
+    color: "#0D47A1",
+    textAlign: "center",
   },
 
   pregunta: {
     marginTop: 15,
     fontWeight: "bold",
+    fontSize: 15,
   },
 
   opciones: {
@@ -193,6 +285,12 @@ const styles = StyleSheet.create({
 
   textoBoton: {
     textAlign: "center",
+    color: "black",
+  },
+
+  textoActivo: {
+    color: "white",
+    fontWeight: "bold",
   },
 
   botonGuardar: {
@@ -200,11 +298,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#2E7D32",
     padding: 15,
     borderRadius: 12,
+    marginBottom: 30,
   },
 
   textoGuardar: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
+    fontSize: 16,
   },
 });

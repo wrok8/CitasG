@@ -1,9 +1,4 @@
-// screens/SignosVitalesScreen.js
-// ─────────────────────────────────────────────────────────────────────────────
-// INSTALACIÓN REQUERIDA:
-//   npx expo install react-native-chart-kit react-native-svg
-//   expo-sensors
-// ─────────────────────────────────────────────────────────────────────────────
+
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -36,7 +31,6 @@ const rand = (min, max, dec = 0) => {
   return dec ? parseFloat(v.toFixed(dec)) : Math.round(v);
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function SignosVitalesScreen({
   pacienteActual,
   setPacienteActual,
@@ -64,7 +58,6 @@ export default function SignosVitalesScreen({
     }
   }, [pacienteActual?.id]);
 
-  // ── Guardar signos en Firebase bajo el paciente ───────────────────────────
   const guardarEnFirebase = async (lista) => {
     if (!pacienteActual?.id) {
       Alert.alert("Error", "No hay paciente seleccionado");
@@ -87,7 +80,6 @@ export default function SignosVitalesScreen({
     }
   };
 
-  // ── Tomar medición ────────────────────────────────────────────────────────
   const tomarMedicion = async () => {
     if (!pacienteActual?.id) {
       Alert.alert("Aviso", "Primero debes seleccionar un paciente");
@@ -135,7 +127,6 @@ export default function SignosVitalesScreen({
     }
   };
 
-  // ── Guardar y pasar al Resumen ────────────────────────────────────────────
   const guardarYVerResumen = async () => {
     if (mediciones.length === 0) {
       Alert.alert("Aviso", "Toma al menos una medición antes de continuar");
@@ -147,7 +138,6 @@ export default function SignosVitalesScreen({
     if (ok) setScreen("Resumen");
   };
 
-  // ── Datos para gráficas ───────────────────────────────────────────────────
   const ultima   = mediciones[0] ?? null;
   const ultimas7 = mediciones.slice(0, 7).reverse();
   const hayDatos = ultimas7.length > 0;
@@ -156,7 +146,6 @@ export default function SignosVitalesScreen({
   const datosTemp = hayDatos ? ultimas7.map((m) => m.temp) : [0];
   const datosSpo2 = hayDatos ? ultimas7.map((m) => m.spo2) : [0];
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <View style={{ flex: 1 }}>
       {/* Banner del paciente activo */}
@@ -186,7 +175,6 @@ export default function SignosVitalesScreen({
           />
         </View>
 
-        {/* ══ TAB: MONITOR ══════════════════════════════════════════════════ */}
         {tab === "monitor" && (
           <>
             {/* Lectura actual */}
@@ -309,7 +297,6 @@ export default function SignosVitalesScreen({
           </>
         )}
 
-        {/* ══ TAB: HISTORIAL ════════════════════════════════════════════════ */}
         {tab === "historial" && (
           <View style={s.card}>
             <Text style={s.cardTitle}>📋 Historial de Mediciones</Text>
@@ -331,7 +318,6 @@ export default function SignosVitalesScreen({
   );
 }
 
-// ── Sub-componentes ──────────────────────────────────────────────────────────
 function TabBtn({ label, active, onPress }) {
   return (
     <TouchableOpacity
@@ -402,24 +388,20 @@ function makeConfig(strokeColor, fillColor, fillOpacity = 0) {
   };
 }
 
-// ── Estilos ──────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   container:      { flex: 1, backgroundColor: "#EEF2F7", padding: 16 },
   pacienteBanner: { backgroundColor: "#E3F2FD", padding: 12, alignItems: "center" },
   pacienteTexto:  { fontWeight: "bold", color: "#0D47A1", fontSize: 14 },
 
-  // Tabs
   tabs:       { flexDirection: "row", marginBottom: 14, gap: 8 },
   tab:        { flex: 1, padding: 11, borderRadius: 10, backgroundColor: "#fff", alignItems: "center", elevation: 1 },
   tabActive:  { backgroundColor: "#1565C0" },
   tabTxt:     { fontWeight: "700", color: "#555", fontSize: 13 },
   tabTxtActive: { color: "#fff" },
 
-  // Card
   card:      { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 14, elevation: 3 },
   cardTitle: { fontSize: 15, fontWeight: "700", color: "#1565C0", marginBottom: 12 },
 
-  // Badges
   row3:        { flexDirection: "row", justifyContent: "space-around" },
   badge:       { alignItems: "center", flex: 1, marginHorizontal: 4, padding: 10, borderRadius: 12, backgroundColor: "#F5F7FA" },
   badgeAlerta: { backgroundColor: "#FFF0F0", borderWidth: 1.5, borderColor: "#FFCDD2" },
@@ -430,7 +412,6 @@ const s = StyleSheet.create({
   alertaDot:   { fontSize: 13, marginTop: 2 },
   fechaUlt:    { textAlign: "center", color: "#999", fontSize: 11, marginTop: 10 },
 
-  // Sensor
   sensorCard:  { backgroundColor: "#E8F5E9", borderRadius: 12, padding: 12, marginBottom: 14 },
   sensorTitle: { fontWeight: "700", color: "#2E7D32", fontSize: 13, marginBottom: 8 },
   accelRow:    { flexDirection: "row", justifyContent: "space-around" },
@@ -439,20 +420,17 @@ const s = StyleSheet.create({
   accelNum:    { fontFamily: "monospace", color: "#1B5E20", fontSize: 13 },
   sensorNote:  { color: "#555", fontSize: 11, marginTop: 8, fontStyle: "italic" },
 
-  // Buttons
   btnMedir:   { backgroundColor: "#1565C0", padding: 16, borderRadius: 14, alignItems: "center", marginBottom: 14, elevation: 4 },
   btnResumen: { backgroundColor: "#2E7D32", padding: 16, borderRadius: 14, alignItems: "center", marginBottom: 14, elevation: 4 },
   btnMedirTxt: { color: "#fff", fontSize: 16, fontWeight: "700" },
 
-  // Charts
+  
   chartLabel: { fontSize: 13, fontWeight: "700", color: "#333", marginTop: 12, marginBottom: 6 },
   chart:      { borderRadius: 10 },
 
-  // Empty
   emptyBox: { alignItems: "center", padding: 40 },
   emptyTxt: { color: "#999", textAlign: "center", fontSize: 14 },
 
-  // Historial
   histItem:      { backgroundColor: "#F9FAFB", borderRadius: 10, padding: 10, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: "#4CAF50" },
   histItemAlerta: { borderLeftColor: "#F44336", backgroundColor: "#FFF8F8" },
   histFecha:     { fontSize: 11, color: "#888", marginBottom: 4 },

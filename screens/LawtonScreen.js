@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function LawtonScreen({
   setScreen,
@@ -24,36 +25,104 @@ export default function LawtonScreen({
     lavanderia: null,
   });
 
+  const [ultimoMovimiento, setUltimoMovimiento] = useState(0);
+
   const seleccionar = (campo, valor) => {
     setRespuestas({ ...respuestas, [campo]: valor });
   };
 
+  const limpiarRespuestas = () => {
+    setRespuestas({
+      telefono: null,
+      transporte: null,
+      medicacion: null,
+      finanzas: null,
+      compras: null,
+      cocina: null,
+      hogar: null,
+      lavanderia: null,
+    });
+
+    Alert.alert(
+      "Formulario reiniciado",
+      "Las respuestas fueron limpiadas por movimiento."
+    );
+  };
+
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+
+    const subscription = Accelerometer.addListener(
+      ({ x, y, z }) => {
+        const fuerza =
+          Math.abs(x) +
+          Math.abs(y) +
+          Math.abs(z);
+
+        if (fuerza > 2.5) {
+          const ahora = Date.now();
+
+          if (
+            ahora - ultimoMovimiento >
+            2000
+          ) {
+            setUltimoMovimiento(ahora);
+            limpiarRespuestas();
+          }
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, [ultimoMovimiento]);
+
   const calcularPuntaje = () => {
     let total = 0;
-    Object.values(respuestas).forEach((valor) => {
-      if (valor === true) total += 1;
-    });
+
+    Object.values(respuestas).forEach(
+      (valor) => {
+        if (valor === true) total += 1;
+      }
+    );
+
     return total;
   };
 
-  const interpretarResultado = (puntaje) => {
-    if (puntaje >= 7) return "Independencia funcional";
-    if (puntaje >= 4) return "Dependencia leve-moderada";
+  const interpretarResultado = (
+    puntaje
+  ) => {
+    if (puntaje >= 7)
+      return "Independencia funcional";
+    if (puntaje >= 4)
+      return "Dependencia leve-moderada";
     return "Dependencia severa";
   };
 
   const guardarEvaluacion = () => {
-    if (Object.values(respuestas).includes(null)) {
-      Alert.alert("Error", "Debe responder todas las preguntas");
+    if (
+      Object.values(respuestas).includes(
+        null
+      )
+    ) {
+      Alert.alert(
+        "Error",
+        "Debe responder todas las preguntas"
+      );
       return;
     }
 
-    const puntajeFinal = calcularPuntaje();
-    const interpretacion = interpretarResultado(puntajeFinal);
+    const puntajeFinal =
+      calcularPuntaje();
+
+    const interpretacion =
+      interpretarResultado(
+        puntajeFinal
+      );
 
     const nuevaEvaluacion = {
       tipo: "Índice de Lawton",
-      fecha: new Date().toLocaleDateString(),
+      fecha:
+        new Date().toLocaleDateString(),
       puntaje: puntajeFinal,
       detalle: {
         ...respuestas,
@@ -63,7 +132,10 @@ export default function LawtonScreen({
 
     setPacienteActual((prev) => ({
       ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      pruebas: [
+        ...(prev?.pruebas || []),
+        nuevaEvaluacion,
+      ],
     }));
 
     Alert.alert(
@@ -74,33 +146,50 @@ export default function LawtonScreen({
     setScreen("Agendar Cita");
   };
 
-  const Item = ({ numero, titulo, campo, descripcion }) => (
+  const Item = ({
+    numero,
+    titulo,
+    campo,
+    descripcion,
+  }) => (
     <>
       <Text style={styles.titulo}>
         {numero}) {titulo}
       </Text>
 
-      <Text style={styles.parrafo}>{descripcion}</Text>
+      <Text style={styles.parrafo}>
+        {descripcion}
+      </Text>
 
       <View style={styles.opciones}>
         <TouchableOpacity
           style={[
             styles.boton,
-            respuestas[campo] === true && styles.botonSi,
+            respuestas[campo] ===
+              true && styles.botonSi,
           ]}
-          onPress={() => seleccionar(campo, true)}
+          onPress={() =>
+            seleccionar(campo, true)
+          }
         >
-          <Text style={styles.textoBoton}>Sí</Text>
+          <Text style={styles.textoBoton}>
+            Sí
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[
             styles.boton,
-            respuestas[campo] === false && styles.botonNo,
+            respuestas[campo] ===
+              false && styles.botonNo,
           ]}
-          onPress={() => seleccionar(campo, false)}
+          onPress={() =>
+            seleccionar(campo, false)
+          }
         >
-          <Text style={styles.textoBoton}>No</Text>
+          <Text style={styles.textoBoton}>
+            No
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -110,7 +199,9 @@ export default function LawtonScreen({
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Índice de Lawton</Text>
+      <Text style={styles.header}>
+        Índice de Lawton
+      </Text>
 
       <Item
         numero="1"
@@ -168,15 +259,13 @@ export default function LawtonScreen({
         descripcion={`Sí: Se ocupa de su ropa independientemente.\nSí: Lava sólo pequeñas cosas.\nNo: Todos se lo tienen que lavar.`}
       />
 
-      <TouchableOpacity style={styles.guardar} onPress={guardarEvaluacion}>
-        <Text style={styles.textoGuardar}>Guardar Evaluación</Text>
-      </TouchableOpacity>
-
       <TouchableOpacity
-        style={styles.regresar}
-        onPress={() => setScreen("FuncionamientoMenu")}
+        style={styles.guardar}
+        onPress={guardarEvaluacion}
       >
-        <Text style={styles.textoRegresar}>Regresar</Text>
+        <Text style={styles.textoGuardar}>
+          Guardar Evaluación
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -235,20 +324,12 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     marginTop: 10,
+    marginBottom: 30,
   },
   textoGuardar: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  regresar: {
-    marginTop: 15,
-    padding: 12,
-    alignItems: "center",
-  },
-  textoRegresar: {
-    color: "#0D47A1",
-    fontWeight: "bold",
   },
 });

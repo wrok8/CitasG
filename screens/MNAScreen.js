@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function MNAScreen({
   setScreen,
@@ -86,6 +87,34 @@ export default function MNAScreen({
     return null;
   }, [peso, estatura]);
 
+  // SENSOR DE MOVIMIENTO
+  useEffect(() => {
+    let ultimaSacudida = 0;
+
+    const subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const fuerza = Math.sqrt(x * x + y * y + z * z);
+
+      const ahora = Date.now();
+
+      if (fuerza > 1.8 && ahora - ultimaSacudida > 1500) {
+        ultimaSacudida = ahora;
+
+        setAnswers({});
+        setPeso("");
+        setEstatura("");
+
+        Alert.alert(
+          "Respuestas limpiadas",
+          "Se reinició la evaluación por movimiento"
+        );
+      }
+    });
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => subscription.remove();
+  }, []);
+
   const seleccionar = (questionId, optionId) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   };
@@ -145,9 +174,12 @@ export default function MNAScreen({
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Evaluación MNA</Text>
 
+      <Text style={styles.sensorInfo}>
+        Sacude el dispositivo para limpiar respuestas
+      </Text>
+
       {quizData.map((item, index) => (
         <View key={item.id}>
-
           {index === 5 && (
             <View style={styles.imcCard}>
               <Text style={styles.imcTitle}>Calcular IMC</Text>
@@ -240,6 +272,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#0D47A1",
   },
+  sensorInfo: {
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#C62828",
+    fontWeight: "bold",
+  },
   card: {
     backgroundColor: "white",
     padding: 16,
@@ -263,7 +301,6 @@ const styles = StyleSheet.create({
   },
   optionText: { color: "black" },
   selectedText: { color: "white", fontWeight: "bold" },
-
   imcCard: {
     backgroundColor: "#E3F2FD",
     padding: 15,

@@ -189,29 +189,20 @@ export default function RegisterPatientScreen({
   const nuevaFechaHora = new Date(form.fecha);
   
   const [horas, minutos] = form.hora.split(":");
-  nuevaFechaHora.setHours(
-    parseInt(horas),
-    parseInt(minutos),
-    0
-  );
+  nuevaFechaHora.setHours(parseInt(horas), parseInt(minutos), 0);
 
   const conflicto = citasExistentes.some((cita) => {
+
+    if (cita.id === pacienteActual?.id) return false;
+
     if (cita.medicoId !== form.medicoId) return false;
 
     const fechaExistente = new Date(cita.fecha);
-
     const [h, m] = cita.hora.split(":");
-    fechaExistente.setHours(
-      parseInt(h),
-      parseInt(m),
-      0
-    );
+    fechaExistente.setHours(parseInt(h), parseInt(m), 0);
 
     const diferencia =
-      Math.abs(
-        nuevaFechaHora - fechaExistente
-      ) /
-      (1000 * 60);
+      Math.abs(nuevaFechaHora - fechaExistente) / (1000 * 60);
 
     return diferencia < 30;
   });

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Alert,
   Pressable,
@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 const PREGUNTAS = [
   { id: 1, texto: "1. ¿En general, está satisfecho(a) con su vida?", valorPositivo: "No" },
@@ -33,58 +34,90 @@ export default function GDS15Screen({
 }) {
   const [respuestas, setRespuestas] = useState({});
 
+  const shakeTimeout = useRef(null);
+
   const seleccionarRespuesta = (id, respuesta) => {
     setRespuestas({ ...respuestas, [id]: respuesta });
   };
 
- const finalizarEvaluacion = () => {
-  if (Object.keys(respuestas).length < 15) {
-    Alert.alert("Incompleto", "Responda todas las preguntas.");
-    return;
-  }
-
-  let puntaje = 0;
-
-  PREGUNTAS.forEach((pregunta) => {
-    if (respuestas[pregunta.id] === pregunta.valorPositivo) {
-      puntaje++;
-    }
-  });
-
-  let interpretacion = "";
-  if (puntaje <= 4) interpretacion = "Normal";
-  else if (puntaje <= 8) interpretacion = "Depresión leve";
-  else if (puntaje <= 11) interpretacion = "Depresión moderada";
-  else interpretacion = "Depresión severa";
-
-  if (!pacienteActual) {
-    Alert.alert("Error", "No hay paciente seleccionado");
-    return;
-  }
-
-  const nuevaEvaluacion = {
-    tipo: "GDS-15",
-    fecha: new Date().toLocaleDateString(),
-    puntaje: puntaje,
-    detalle: {
-      respuestas,
-      interpretacion,
-    },
+  // FUNCIÓN PARA LIMPIAR RESPUESTAS
+  const limpiarFormulario = () => {
+    setRespuestas({});
+    Alert.alert(
+      "Formulario reiniciado",
+      "Se limpiaron todas las respuestas 📱"
+    );
   };
 
-  // 🔥 MISMO SISTEMA QUE FLUENCIA VERBAL
-  setPacienteActual((prev) => ({
-    ...prev,
-    pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
-  }));
+  // SENSOR DE SACUDIDA
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
 
-  Alert.alert(
-    "Evaluación completada",
-    `Puntaje: ${puntaje}/15\n${interpretacion}`
-  );
+    const subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const totalForce = Math.sqrt(x * x + y * y + z * z);
 
-  setScreen("Agendar Cita");
-};
+      if (totalForce > 1.8) {
+        if (!shakeTimeout.current) {
+          limpiarFormulario();
+
+          shakeTimeout.current = setTimeout(() => {
+            shakeTimeout.current = null;
+          }, 2000);
+        }
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  const finalizarEvaluacion = () => {
+    if (Object.keys(respuestas).length < 15) {
+      Alert.alert("Incompleto", "Responda todas las preguntas.");
+      return;
+    }
+
+    let puntaje = 0;
+
+    PREGUNTAS.forEach((pregunta) => {
+      if (respuestas[pregunta.id] === pregunta.valorPositivo) {
+        puntaje++;
+      }
+    });
+
+    let interpretacion = "";
+    if (puntaje <= 4) interpretacion = "Normal";
+    else if (puntaje <= 8) interpretacion = "Depresión leve";
+    else if (puntaje <= 11) interpretacion = "Depresión moderada";
+    else interpretacion = "Depresión severa";
+
+    if (!pacienteActual) {
+      Alert.alert("Error", "No hay paciente seleccionado");
+      return;
+    }
+
+    const nuevaEvaluacion = {
+      tipo: "GDS-15",
+      fecha: new Date().toLocaleDateString(),
+      puntaje: puntaje,
+      detalle: {
+        respuestas,
+        interpretacion,
+      },
+    };
+
+    // MISMO SISTEMA QUE FLUENCIA VERBAL
+    setPacienteActual((prev) => ({
+      ...prev,
+      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+    }));
+
+    Alert.alert(
+      "Evaluación completada",
+      `Puntaje: ${puntaje}/15\n${interpretacion}`
+    );
+
+    setScreen("Agendar Cita");
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -102,9 +135,18 @@ export default function GDS15Screen({
                   styles.boton,
                   respuestas[pregunta.id] === op && styles.selected,
                 ]}
-                onPress={() => seleccionarRespuesta(pregunta.id, op)}
+                onPress={() =>
+                  seleccionarRespuesta(pregunta.id, op)
+                }
               >
-                <Text style={{ color: respuestas[pregunta.id] === op ? "white" : "black" }}>
+                <Text
+                  style={{
+                    color:
+                      respuestas[pregunta.id] === op
+                        ? "white"
+                        : "black",
+                  }}
+                >
                   {op}
                 </Text>
               </Pressable>
@@ -113,8 +155,16 @@ export default function GDS15Screen({
         </View>
       ))}
 
-      <Pressable style={styles.finalizar} onPress={finalizarEvaluacion}>
-        <Text style={{ color: "white", fontWeight: "bold" }}>
+      <Pressable
+        style={styles.finalizar}
+        onPress={finalizarEvaluacion}
+      >
+        <Text
+          style={{
+            color: "white",
+            fontWeight: "bold",
+          }}
+        >
           Finalizar Evaluación
         </Text>
       </Pressable>
@@ -123,16 +173,29 @@ export default function GDS15Screen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 15, backgroundColor: "#F3F4F6" },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  container: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: "#F3F4F6",
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
   card: {
     backgroundColor: "white",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,
   },
-  texto: { marginBottom: 10 },
-  row: { flexDirection: "row", gap: 10 },
+  texto: {
+    marginBottom: 10,
+  },
+  row: {
+    flexDirection: "row",
+    gap: 10,
+  },
   boton: {
     flex: 1,
     padding: 10,

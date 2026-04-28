@@ -6,6 +6,14 @@ export default function AfectivoMenuScreen({ setScreen }) {
     <View style={styles.container}>
       <Text style={styles.title}>Evaluaciones Afectivas</Text>
 
+      {/* BOTÓN VOLVER */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => setScreen("Agendar Cita")}
+      >
+        <Text style={styles.backButtonText}>← Volver a Agenda</Text>
+      </TouchableOpacity>
+
       {/* GDS-15 */}
       <TouchableOpacity
         style={styles.button}
@@ -21,14 +29,6 @@ export default function AfectivoMenuScreen({ setScreen }) {
       >
         <Text style={styles.buttonText}>2. CESD-7 Items</Text>
       </TouchableOpacity>
-
-      {/* Botón volver */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => setScreen("Agendar Cita")}
-      >
-        <Text style={styles.backText}>Volver</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -39,13 +39,29 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#F4F6F8",
   },
+
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 30,
+    marginBottom: 25,
     color: "#0D47A1",
     textAlign: "center",
   },
+
+  backButton: {
+    backgroundColor: "#6C757D",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+
+  backButtonText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+
   button: {
     backgroundColor: "#1565C0",
     padding: 18,
@@ -53,22 +69,10 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     elevation: 3,
   },
+
   buttonText: {
     color: "white",
     textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  backButton: {
-    marginTop: 30,
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#1565C0",
-    alignItems: "center",
-  },
-  backText: {
-    color: "#1565C0",
     fontWeight: "bold",
     fontSize: 16,
   },

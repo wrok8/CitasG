@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function EscalaMaltratoScreen({
   setScreen,
@@ -39,6 +40,53 @@ export default function EscalaMaltratoScreen({
   ];
 
   const [respuestas, setRespuestas] = useState({});
+  const lastShake = useRef(0);
+
+  // 🔥 SENSOR DE AGITADO
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+
+    const subscription = Accelerometer.addListener(
+      ({ x, y, z }) => {
+        const magnitud = Math.sqrt(
+          x * x + y * y + z * z
+        );
+
+        if (magnitud > 1.8) {
+          const now = Date.now();
+
+          if (now - lastShake.current > 1500) {
+            lastShake.current = now;
+
+            Alert.alert(
+              "Borrar respuestas",
+              "¿Deseas reiniciar la evaluación?",
+              [
+                {
+                  text: "Cancelar",
+                  style: "cancel",
+                },
+                {
+                  text: "Sí, borrar",
+                  onPress: reiniciarFormulario,
+                },
+              ]
+            );
+          }
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, []);
+
+  const reiniciarFormulario = () => {
+    setRespuestas({});
+    Alert.alert(
+      "Reiniciado",
+      "Las respuestas fueron borradas"
+    );
+  };
 
   const seleccionar = (preguntaIndex, valor) => {
     setRespuestas((prev) => ({
@@ -84,11 +132,15 @@ export default function EscalaMaltratoScreen({
       tipo: "Escala Geriátrica de Maltrato",
       fecha: new Date().toLocaleDateString(),
       puntaje: total,
-      detalle: preguntas.map((pregunta, index) => ({
-        pregunta,
-        respuesta:
-          respuestas[index] === 1 ? "Sí" : "No",
-      })),
+      detalle: preguntas.map(
+        (pregunta, index) => ({
+          pregunta,
+          respuesta:
+            respuestas[index] === 1
+              ? "Sí"
+              : "No",
+        })
+      ),
       interpretacion,
     };
 
@@ -105,7 +157,6 @@ export default function EscalaMaltratoScreen({
       `Puntaje: ${total}/22\n${interpretacion}`
     );
 
-    // REGRESAR AL FLUJO DE AGENDAR CITA
     setScreen("Agendar Cita");
   };
 
@@ -115,6 +166,10 @@ export default function EscalaMaltratoScreen({
     >
       <Text style={styles.title}>
         Escala Geriátrica de Maltrato
+      </Text>
+
+      <Text style={styles.sensorInfo}>
+        📳 Agita el dispositivo para borrar respuestas
       </Text>
 
       {preguntas.map((pregunta, index) => (
@@ -134,7 +189,15 @@ export default function EscalaMaltratoScreen({
                 seleccionar(index, 0)
               }
             >
-              <Text>No</Text>
+              <Text
+                style={
+                  respuestas[index] === 0
+                    ? styles.selectedText
+                    : null
+                }
+              >
+                No
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -147,7 +210,15 @@ export default function EscalaMaltratoScreen({
                 seleccionar(index, 1)
               }
             >
-              <Text>Sí</Text>
+              <Text
+                style={
+                  respuestas[index] === 1
+                    ? styles.selectedText
+                    : null
+                }
+              >
+                Sí
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -177,9 +248,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: "center",
     color: "#0D47A1",
+  },
+  sensorInfo: {
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#666",
+    fontStyle: "italic",
   },
   row: {
     marginBottom: 15,
@@ -203,7 +280,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   selected: {
-    backgroundColor: "#90caf9",
+    backgroundColor: "#1565C0",
+  },
+  selectedText: {
+    color: "white",
+    fontWeight: "bold",
   },
   total: {
     fontSize: 18,

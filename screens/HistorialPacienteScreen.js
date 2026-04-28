@@ -205,7 +205,7 @@ export default function HistorialPacienteScreen({
               }}
             >
               <Text style={styles.btnText}>
-                👁 Ver Resumen
+                 Ver Resumen
               </Text>
             </Pressable>
 
@@ -222,7 +222,7 @@ export default function HistorialPacienteScreen({
               }}
             >
               <Text style={styles.btnText}>
-                ❤️ Ver Signos Vitales
+                 Ver Signos Vitales
               </Text>
             </Pressable>
 
@@ -239,7 +239,7 @@ export default function HistorialPacienteScreen({
               }}
             >
               <Text style={styles.btnText}>
-                ✏ Editar
+                 Editar
               </Text>
             </Pressable>
 
@@ -256,7 +256,7 @@ export default function HistorialPacienteScreen({
               }}
             >
               <Text style={styles.btnText}>
-                📝 Observaciones
+                 Observaciones
               </Text>
             </Pressable>
 
@@ -270,7 +270,7 @@ export default function HistorialPacienteScreen({
                 onPress={reagendarCita}
               >
                 <Text style={styles.btnText}>
-                  🔄 Reagendar
+                   Reagendar
                 </Text>
               </Pressable>
             ) : (
@@ -282,7 +282,7 @@ export default function HistorialPacienteScreen({
                 onPress={cancelarCita}
               >
                 <Text style={styles.btnText}>
-                  ❌ Cancelar
+                   Cancelar
                 </Text>
               </Pressable>
             )}
@@ -295,7 +295,7 @@ export default function HistorialPacienteScreen({
               onPress={eliminarCita}
             >
               <Text style={styles.btnText}>
-                🗑 Eliminar
+                 Eliminar
               </Text>
             </Pressable>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Image,
   ScrollView,
@@ -27,6 +27,23 @@ export default function MoCAScreen({
 
   const [puntos, setPuntos] = useState({});
   const [puntosResta, setPuntosResta] = useState(0);
+
+  // SENSOR PARA AGITAR Y LIMPIAR
+  const shakeTimeout = useRef(null);
+
+  const limpiarFormulario = () => {
+    setPuntos({});
+    setPuntosResta(0);
+    setIsAccelActive(false);
+    setInstruccionActual(0);
+    setTiempoInicio(0);
+    setResultadoEjes("");
+
+    Alert.alert(
+      "Formulario reiniciado",
+      "Se limpiaron todas las respuestas 📱"
+    );
+  };
 
   const togglePunto = (id) => {
     setPuntos((prev) => ({
@@ -69,59 +86,65 @@ export default function MoCAScreen({
   const interpretation =
     getInterpretation();
 
+  // SENSOR DE LA PRUEBA DE EJES + SACUDIDA PARA LIMPIAR
   useEffect(() => {
-  let sub;
-
-  if (isAccelActive) {
     Accelerometer.setUpdateInterval(200);
 
-    sub = Accelerometer.addListener((data) => {
-      console.log("Sensor:", data);
+    const sub = Accelerometer.addListener((data) => {
+      const { x, y, z } = data;
 
-      // Paso 1 → inclinar a la izquierda
-      if (
-        instruccionActual === 1 &&
-        data.x > 0.5
-      ) {
-        setInstruccionActual(2);
+      // SACUDIDA PARA LIMPIAR
+      const totalForce = Math.sqrt(
+        x * x + y * y + z * z
+      );
+
+      if (totalForce > 1.8) {
+        if (!shakeTimeout.current) {
+          limpiarFormulario();
+
+          shakeTimeout.current = setTimeout(() => {
+            shakeTimeout.current = null;
+          }, 2000);
+        }
       }
 
-      // Paso 2 → inclinar a la derecha
-      else if (
-        instruccionActual === 2 &&
-        data.x < -0.5
-      ) {
-        setInstruccionActual(3);
-      }
+      // PRUEBA DE EJES
+      if (isAccelActive) {
+        if (
+          instruccionActual === 1 &&
+          x > 0.5
+        ) {
+          setInstruccionActual(2);
+        } else if (
+          instruccionActual === 2 &&
+          x < -0.5
+        ) {
+          setInstruccionActual(3);
+        } else if (
+          instruccionActual === 3 &&
+          z < -0.5
+        ) {
+          const tiempo = (
+            (Date.now() - tiempoInicio) /
+            1000
+          ).toFixed(1);
 
-      // Paso 3 → pantalla hacia abajo
-      else if (
-        instruccionActual === 3 &&
-        data.z < -0.5
-      ) {
-        const tiempo = (
-          (Date.now() - tiempoInicio) /
-          1000
-        ).toFixed(1);
+          setResultadoEjes(
+            `Prueba completada correctamente en ${tiempo} segundos`
+          );
 
-        setResultadoEjes(
-          `Prueba completada correctamente en ${tiempo} segundos`
-        );
-
-        setInstruccionActual(4);
-        setIsAccelActive(false);
+          setInstruccionActual(4);
+          setIsAccelActive(false);
+        }
       }
     });
-  }
 
-  return () => {
-    if (sub) sub.remove();
-  };
-}, [
-  isAccelActive,
-  instruccionActual,
-  tiempoInicio,
-]);
+    return () => sub.remove();
+  }, [
+    isAccelActive,
+    instruccionActual,
+    tiempoInicio,
+  ]);
 
   const iniciarPruebaEjes = () => {
     setInstruccionActual(1);
@@ -131,55 +154,53 @@ export default function MoCAScreen({
   };
 
   const guardarPrueba = () => {
-  if (!pacienteActual) {
+    if (!pacienteActual) {
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
+      return;
+    }
+
+    const nuevaPrueba = {
+      tipo: "MoCA",
+      fecha: new Date().toLocaleDateString(),
+      puntaje: totalScore,
+      maximo: 30,
+      detalle: [
+        `Puntaje bruto: ${rawScore}`,
+        `Restas seriadas: ${puntosResta}`,
+        `Ajuste escolaridad: ${adjustment}`,
+        `Resultado: ${interpretation.text}`,
+      ],
+    };
+
+    const pruebasActualizadas = Array.isArray(
+      pacienteActual.pruebas
+    )
+      ? [...pacienteActual.pruebas, nuevaPrueba]
+      : [nuevaPrueba];
+
+    const pacienteActualizado = {
+      ...pacienteActual,
+      pruebas: pruebasActualizadas,
+    };
+
+    setPacienteActual(pacienteActualizado);
+
     Alert.alert(
-      "Error",
-      "No hay paciente seleccionado"
-    );
-    return;
-  }
-
-  const nuevaPrueba = {
-    tipo: "MoCA",
-    fecha: new Date().toLocaleDateString(),
-    puntaje: totalScore,
-    maximo: 30,
-    detalle: [
-      `Puntaje bruto: ${rawScore}`,
-      `Restas seriadas: ${puntosResta}`,
-      `Ajuste escolaridad: ${adjustment}`,
-      `Resultado: ${interpretation.text}`,
-    ],
-  };
-
-  const pruebasActualizadas = Array.isArray(
-    pacienteActual.pruebas
-  )
-    ? [...pacienteActual.pruebas, nuevaPrueba]
-    : [nuevaPrueba];
-
-  const pacienteActualizado = {
-    ...pacienteActual,
-    pruebas: pruebasActualizadas,
-  };
-
-  // Guardar paciente actualizado
-  setPacienteActual(pacienteActualizado);
-
-  Alert.alert(
-    "Evaluación guardada",
-    `Puntaje total: ${totalScore}/30`,
-    [
-      {
-        text: "OK",
-        onPress: () => {
-          // Regresar a agenda
-          setScreen("Agendar Cita");
+      "Evaluación guardada",
+      `Puntaje total: ${totalScore}/30`,
+      [
+        {
+          text: "OK",
+          onPress: () => {
+            setScreen("Agendar Cita");
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
   const ScoreSwitch = ({
     label,
@@ -240,327 +261,169 @@ export default function MoCAScreen({
           Evaluación MoCA
         </Text>
 
-       
-       <FormSection
-  title="Prueba de ejes"
-  subtitle="Sensor interactivo"
->
-  <View
-    style={{
-      backgroundColor: "#F1F3F5",
-      padding: 15,
-      borderRadius: 10,
-    }}
-  >
-    <Text
-      style={{
-        marginBottom: 10,
-        fontSize: 16,
-      }}
-    >
-      Pida al paciente que sostenga el dispositivo y siga las instrucciones.
-    </Text>
-
-    {instruccionActual === 0 && (
-      <TouchableOpacity
-        style={styles.btnAction}
-        onPress={iniciarPruebaEjes}
-      >
-        <Text style={styles.btnTextAction}>
-          Iniciar prueba
-        </Text>
-      </TouchableOpacity>
-    )}
-
-    {instruccionActual === 1 && (
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: "bold",
-          textAlign: "center",
-          marginVertical: 10,
-        }}
-      >
-        Incline el dispositivo a la IZQUIERDA
-      </Text>
-    )}
-
-    {instruccionActual === 2 && (
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: "bold",
-          textAlign: "center",
-          marginVertical: 10,
-        }}
-      >
-        Ahora inclínelo a la DERECHA
-      </Text>
-    )}
-
-    {instruccionActual === 3 && (
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: "bold",
-          textAlign: "center",
-          marginVertical: 10,
-        }}
-      >
-        Ahora coloque la pantalla HACIA ABAJO
-      </Text>
-    )}
-
-    {instruccionActual === 4 && (
-      <View>
-        <Text
-          style={{
-            fontSize: 18,
-            color: "#5CB85C",
-            fontWeight: "bold",
-            textAlign: "center",
-            marginVertical: 10,
-          }}
+        {/* TU PRUEBA DE EJES */}
+        <FormSection
+          title="Prueba de ejes"
+          subtitle="Sensor interactivo"
         >
-          {resultadoEjes}
-        </Text>
+          <View
+            style={{
+              backgroundColor: "#F1F3F5",
+              padding: 15,
+              borderRadius: 10,
+            }}
+          >
+            <Text
+              style={{
+                marginBottom: 10,
+                fontSize: 16,
+              }}
+            >
+              Pida al paciente que sostenga el dispositivo y siga las instrucciones.
+            </Text>
 
-        <TouchableOpacity
-          style={styles.btnAction}
-          onPress={iniciarPruebaEjes}
-        >
-          <Text style={styles.btnTextAction}>
-            Reintentar prueba
-          </Text>
-        </TouchableOpacity>
-      </View>
-    )}
-  </View>
-  </FormSection>
+            {instruccionActual === 0 && (
+              <TouchableOpacity
+                style={styles.btnAction}
+                onPress={iniciarPruebaEjes}
+              >
+                <Text style={styles.btnTextAction}>
+                  Iniciar prueba
+                </Text>
+              </TouchableOpacity>
+            )}
 
+            {instruccionActual === 1 && (
+              <Text style={styles.instructionText}>
+                Incline el dispositivo a la IZQUIERDA
+              </Text>
+            )}
+
+            {instruccionActual === 2 && (
+              <Text style={styles.instructionText}>
+                Ahora inclínelo a la DERECHA
+              </Text>
+            )}
+
+            {instruccionActual === 3 && (
+              <Text style={styles.instructionText}>
+                Ahora coloque la pantalla HACIA ABAJO
+              </Text>
+            )}
+
+            {instruccionActual === 4 && (
+              <View>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    color: "#5CB85C",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    marginVertical: 10,
+                  }}
+                >
+                  {resultadoEjes}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.btnAction}
+                  onPress={iniciarPruebaEjes}
+                >
+                  <Text style={styles.btnTextAction}>
+                    Reintentar prueba
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </FormSection>
+
+        {/* IDENTIFICACIÓN */}
         <FormSection
           title="Identificación"
           subtitle="3 puntos"
         >
-          <View
-            style={{
-              flexDirection: "row",
-            }}
-          >
-            <View
-              style={{ flex: 1 }}
-            >
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ flex: 1 }}>
               <Image
                 source={require("../assets/leon.jpg")}
-                style={
-                  styles.imageAnimal
-                }
+                style={styles.imageAnimal}
               />
-              <ScoreSwitch
-                label="León"
-                id="lion"
-              />
+              <ScoreSwitch label="León" id="lion" />
             </View>
 
-            <View
-              style={{ flex: 1 }}
-            >
+            <View style={{ flex: 1 }}>
               <Image
                 source={require("../assets/rinoceronte.jpg")}
-                style={
-                  styles.imageAnimal
-                }
+                style={styles.imageAnimal}
               />
-              <ScoreSwitch
-                label="Rinoceronte"
-                id="rhino"
-              />
+              <ScoreSwitch label="Rinoceronte" id="rhino" />
             </View>
 
-            <View
-              style={{ flex: 1 }}
-            >
+            <View style={{ flex: 1 }}>
               <Image
                 source={require("../assets/camello.jpg")}
-                style={
-                  styles.imageAnimal
-                }
+                style={styles.imageAnimal}
               />
-              <ScoreSwitch
-                label="Camello"
-                id="camel"
-              />
+              <ScoreSwitch label="Camello" id="camel" />
             </View>
           </View>
         </FormSection>
 
-        <FormSection
-          title="Atención"
-          subtitle="6 puntos"
-        >
-          <ScoreSwitch
-            label="Secuencia directa"
-            id="dir"
-          />
-
-          <ScoreSwitch
-            label="Secuencia inversa"
-            id="inv"
-          />
-
-          <ScoreSwitch
-            label="Serie letras"
-            id="letters"
-          />
-
-          <ScoreOption
-            label="4-5 restas correctas (3 pts)"
-            value={3}
-          />
-
-          <ScoreOption
-            label="2-3 restas correctas (2 pts)"
-            value={2}
-          />
-
-          <ScoreOption
-            label="1 correcta (1 pt)"
-            value={1}
-          />
+        {/* ATENCIÓN */}
+        <FormSection title="Atención" subtitle="6 puntos">
+          <ScoreSwitch label="Secuencia directa" id="dir" />
+          <ScoreSwitch label="Secuencia inversa" id="inv" />
+          <ScoreSwitch label="Serie letras" id="letters" />
+          <ScoreOption label="4-5 restas correctas (3 pts)" value={3} />
+          <ScoreOption label="2-3 restas correctas (2 pts)" value={2} />
+          <ScoreOption label="1 correcta (1 pt)" value={1} />
         </FormSection>
 
-        <FormSection
-          title="Orientación"
-          subtitle="6 puntos"
-        >
-          <ScoreSwitch
-            label="Fecha"
-            id="fecha"
-          />
-          <ScoreSwitch
-            label="Mes"
-            id="mes"
-          />
-          <ScoreSwitch
-            label="Año"
-            id="anio"
-          />
-          <ScoreSwitch
-            label="Lugar"
-            id="lugar"
-          />
-          <ScoreSwitch
-            label="Ciudad"
-            id="ciudad"
-          />
-          <ScoreSwitch
-            label="Día"
-            id="dia"
-          />
+        {/* ORIENTACIÓN */}
+        <FormSection title="Orientación" subtitle="6 puntos">
+          <ScoreSwitch label="Fecha" id="fecha" />
+          <ScoreSwitch label="Mes" id="mes" />
+          <ScoreSwitch label="Año" id="anio" />
+          <ScoreSwitch label="Lugar" id="lugar" />
+          <ScoreSwitch label="Ciudad" id="ciudad" />
+          <ScoreSwitch label="Día" id="dia" />
         </FormSection>
 
-        <FormSection
-        title="Visuoespacial / Ejecutiva"
-        subtitle="5 puntos"
-      >
-        <ScoreSwitch
-          label="Conectar puntos"
-          id="visuo_1"
-        />
+        {/* VISUOESPACIAL */}
+        <FormSection title="Visuoespacial / Ejecutiva" subtitle="5 puntos">
+          <ScoreSwitch label="Conectar puntos" id="visuo_1" />
+          <ScoreSwitch label="Copiar cubo" id="visuo_2" />
+          <ScoreSwitch label="Reloj: contorno" id="visuo_3" />
+          <ScoreSwitch label="Reloj: números" id="visuo_4" />
+          <ScoreSwitch label="Reloj: manecillas" id="visuo_5" />
+        </FormSection>
 
-        <ScoreSwitch
-          label="Copiar cubo"
-          id="visuo_2"
-        />
+        {/* LENGUAJE */}
+        <FormSection title="Lenguaje" subtitle="3 puntos">
+          <ScoreSwitch label="Frase 1 correcta" id="lang_1" />
+          <ScoreSwitch label="Frase 2 correcta" id="lang_2" />
+          <ScoreSwitch label="Fluidez verbal" id="lang_3" />
+        </FormSection>
 
-        <ScoreSwitch
-          label="Reloj: contorno"
-          id="visuo_3"
-        />
+        {/* ABSTRACCIÓN */}
+        <FormSection title="Abstracción" subtitle="2 puntos">
+          <ScoreSwitch label="Tren / bicicleta" id="abs_1" />
+          <ScoreSwitch label="Reloj / regla" id="abs_2" />
+        </FormSection>
 
-        <ScoreSwitch
-          label="Reloj: números"
-          id="visuo_4"
-        />
+        {/* RECUERDO */}
+        <FormSection title="Recuerdo diferido" subtitle="5 puntos">
+          <ScoreSwitch label="Rostro" id="rec_1" />
+          <ScoreSwitch label="Seda" id="rec_2" />
+          <ScoreSwitch label="Iglesia" id="rec_3" />
+          <ScoreSwitch label="Clavel" id="rec_4" />
+          <ScoreSwitch label="Rojo" id="rec_5" />
+        </FormSection>
 
-        <ScoreSwitch
-          label="Reloj: manecillas"
-          id="visuo_5"
-        />
-      </FormSection>
-
-      <FormSection
-        title="Lenguaje"
-        subtitle="3 puntos"
-      >
-        <ScoreSwitch
-          label="Frase 1 correcta"
-          id="lang_1"
-        />
-
-        <ScoreSwitch
-          label="Frase 2 correcta"
-          id="lang_2"
-        />
-
-        <ScoreSwitch
-          label="Fluidez verbal"
-          id="lang_3"
-        />
-      </FormSection>
-
-      <FormSection
-        title="Abstracción"
-        subtitle="2 puntos"
-      >
-        <ScoreSwitch
-          label="Tren / bicicleta"
-          id="abs_1"
-        />
-
-        <ScoreSwitch
-          label="Reloj / regla"
-          id="abs_2"
-        />
-      </FormSection>
-
-      <FormSection
-  title="Recuerdo diferido"
-  subtitle="5 puntos"
->
-  <ScoreSwitch
-    label="Rostro"
-    id="rec_1"
-  />
-
-  <ScoreSwitch
-    label="Seda"
-    id="rec_2"
-  />
-
-  <ScoreSwitch
-    label="Iglesia"
-    id="rec_3"
-  />
-
-  <ScoreSwitch
-    label="Clavel"
-    id="rec_4"
-  />
-
-  <ScoreSwitch
-    label="Rojo"
-    id="rec_5"
-  />
-</FormSection>
-
-        <FormSection
-          title="Resultado Final"
-          subtitle=""
-        >
-          <Text
-            style={styles.scoreText}
-          >
+        {/* RESULTADO */}
+        <FormSection title="Resultado Final" subtitle="">
+          <Text style={styles.scoreText}>
             {totalScore} / 30
           </Text>
 
@@ -573,14 +436,8 @@ export default function MoCAScreen({
               },
             ]}
           >
-            <Text
-              style={
-                styles.badgeText
-              }
-            >
-              {
-                interpretation.text
-              }
+            <Text style={styles.badgeText}>
+              {interpretation.text}
             </Text>
           </View>
         </FormSection>
@@ -589,11 +446,7 @@ export default function MoCAScreen({
           style={styles.btnSubmit}
           onPress={guardarPrueba}
         >
-          <Text
-            style={
-              styles.btnTextSubmit
-            }
-          >
+          <Text style={styles.btnTextSubmit}>
             GUARDAR EVALUACIÓN
           </Text>
         </TouchableOpacity>
@@ -621,8 +474,7 @@ const styles = StyleSheet.create({
   },
   scoreRow: {
     flexDirection: "row",
-    justifyContent:
-      "space-between",
+    justifyContent: "space-between",
     marginVertical: 5,
   },
   scoreLabel: {
@@ -671,5 +523,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 100,
     resizeMode: "contain",
+  },
+  instructionText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginVertical: 10,
   },
 });

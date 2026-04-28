@@ -62,11 +62,11 @@ export default function GraficasScreen() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>
-        📊 Dashboard de Citas
+         Dashboard de Citas
       </Text>
 
       <Text style={styles.subtitle}>
-        📍 Citas por Centro Geriátrico
+         Citas por Centro Geriátrico
       </Text>
 
       <BarChart
@@ -80,7 +80,7 @@ export default function GraficasScreen() {
       />
 
       <Text style={styles.subtitle}>
-        🩺 Citas por Médico
+         Citas por Médico
       </Text>
 
       <BarChart
@@ -94,7 +94,7 @@ export default function GraficasScreen() {
       />
 
       <Text style={styles.subtitle}>
-        👤 Citas por Paciente
+         Citas por Paciente
       </Text>
 
       <BarChart

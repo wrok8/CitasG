@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   ScrollView,
@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Accelerometer } from "expo-sensors";
 
 export default function MUSTScreen({
   setScreen,
@@ -21,7 +22,36 @@ export default function MUSTScreen({
   const [estaEnfermo, setEstaEnfermo] = useState(false);
   const [sintomas, setSintomas] = useState("");
 
-  // 🚨 Si no hay paciente seleccionado
+  // SENSOR DE MOVIMIENTO
+  useEffect(() => {
+    let ultimaSacudida = 0;
+
+    const subscription = Accelerometer.addListener(({ x, y, z }) => {
+      const fuerza = Math.sqrt(x * x + y * y + z * z);
+      const ahora = Date.now();
+
+      if (fuerza > 1.8 && ahora - ultimaSacudida > 1500) {
+        ultimaSacudida = ahora;
+
+        setPeso("");
+        setTalla("");
+        setPerdidaPesoPct("");
+        setEstaEnfermo(false);
+        setSintomas("");
+
+        Alert.alert(
+          "Campos limpiados",
+          "La evaluación MUST fue reiniciada por movimiento"
+        );
+      }
+    });
+
+    Accelerometer.setUpdateInterval(300);
+
+    return () => subscription.remove();
+  }, []);
+
+  // Si no hay paciente seleccionado
   if (!pacienteActual) {
     return (
       <SafeAreaView style={styles.container}>
@@ -36,7 +66,7 @@ export default function MUSTScreen({
     );
   }
 
-  // 🔢 Calcular puntaje MUST
+  // Calcular puntaje MUST
   const calcularMUST = () => {
     let puntos = 0;
 
@@ -85,7 +115,7 @@ export default function MUSTScreen({
     };
   };
 
-  // 💾 Guardar prueba
+  // Guardar prueba
   const handleGuardar = () => {
     if ([peso, talla].includes("")) {
       Alert.alert("Error", "Completa peso y talla");
@@ -120,7 +150,6 @@ export default function MUSTScreen({
       },
     };
 
-    // 🔥 EXACTAMENTE igual que Fluencia y Katz
     setPacienteActual((prev) => ({
       ...prev,
       pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
@@ -138,6 +167,10 @@ export default function MUSTScreen({
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <Text style={styles.title}>Evaluación Nutricional MUST</Text>
+
+        <Text style={styles.sensorInfo}>
+          Sacude el dispositivo para limpiar los campos
+        </Text>
 
         <View style={styles.row}>
           <View style={[styles.campo, { flex: 1, marginRight: 10 }]}>
@@ -217,6 +250,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
     color: "#6D28D9",
+  },
+  sensorInfo: {
+    textAlign: "center",
+    marginBottom: 15,
+    color: "#C62828",
+    fontWeight: "bold",
   },
   campo: { marginBottom: 15 },
   label: { fontWeight: "bold", marginBottom: 5 },

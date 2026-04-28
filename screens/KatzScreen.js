@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,20 +7,66 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 export default function KatzScreen({
   setScreen,
   pacienteActual,
   setPacienteActual,
 }) {
-  const [answers, setAnswers] = useState({
+  const initialAnswers = {
     bath: null,
     dress: null,
     toilet: null,
     transfer: null,
     continence: null,
     feeding: null,
-  });
+  };
+
+  const [answers, setAnswers] = useState(initialAnswers);
+
+  const shakeTimeout = useRef(null);
+
+  // 🔥 LIMPIAR RESPUESTAS
+  const limpiarFormulario = () => {
+    setAnswers(initialAnswers);
+
+    Alert.alert(
+      "Formulario reiniciado",
+      "Agitaste el teléfono 📱"
+    );
+  };
+
+  // 🔥 SENSOR DE SACUDIDA
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+
+    const subscription = Accelerometer.addListener(
+      ({ x, y, z }) => {
+        const totalForce = Math.sqrt(
+          x * x + y * y + z * z
+        );
+
+        if (totalForce > 1.8) {
+          if (!shakeTimeout.current) {
+            limpiarFormulario();
+
+            shakeTimeout.current = setTimeout(() => {
+              shakeTimeout.current = null;
+            }, 2000);
+          }
+        }
+      }
+    );
+
+    return () => {
+      subscription.remove();
+
+      if (shakeTimeout.current) {
+        clearTimeout(shakeTimeout.current);
+      }
+    };
+  }, []);
 
   const seleccionar = (campo, valor) => {
     setAnswers((prev) => ({
@@ -31,12 +77,18 @@ export default function KatzScreen({
 
   const guardarPrueba = () => {
     if (Object.values(answers).includes(null)) {
-      Alert.alert("Atención", "Responde todas las preguntas.");
+      Alert.alert(
+        "Atención",
+        "Responde todas las preguntas."
+      );
       return;
     }
 
     if (!pacienteActual) {
-      Alert.alert("Error", "No hay paciente seleccionado");
+      Alert.alert(
+        "Error",
+        "No hay paciente seleccionado"
+      );
       return;
     }
 
@@ -45,9 +97,13 @@ export default function KatzScreen({
     ).length;
 
     let interpretacion = "";
-    if (puntaje === 6) interpretacion = "Independiente";
-    else if (puntaje >= 4) interpretacion = "Dependencia leve";
-    else if (puntaje >= 2) interpretacion = "Dependencia moderada";
+
+    if (puntaje === 6)
+      interpretacion = "Independiente";
+    else if (puntaje >= 4)
+      interpretacion = "Dependencia leve";
+    else if (puntaje >= 2)
+      interpretacion = "Dependencia moderada";
     else interpretacion = "Dependencia severa";
 
     const nuevaEvaluacion = {
@@ -62,7 +118,10 @@ export default function KatzScreen({
 
     setPacienteActual((prev) => ({
       ...prev,
-      pruebas: [...(prev?.pruebas || []), nuevaEvaluacion],
+      pruebas: [
+        ...(prev?.pruebas || []),
+        nuevaEvaluacion,
+      ],
     }));
 
     Alert.alert(
@@ -75,7 +134,9 @@ export default function KatzScreen({
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Índice de Katz</Text>
+      <Text style={styles.title}>
+        Índice de Katz
+      </Text>
 
       {/* 1 BAÑO */}
       <View style={styles.card}>
@@ -89,18 +150,43 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.bath === "si" && styles.selected]}
-            onPress={() => seleccionar("bath", "si")}
+            style={[
+              styles.opcion,
+              answers.bath === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("bath", "si")
+            }
           >
-            <Text style={answers.bath === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.bath === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.bath === "no" && styles.selected]}
-            onPress={() => seleccionar("bath", "no")}
+            style={[
+              styles.opcion,
+              answers.bath === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("bath", "no")
+            }
           >
-            <Text style={answers.bath === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.bath === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
@@ -109,7 +195,9 @@ export default function KatzScreen({
 
       {/* 2 VESTIDO */}
       <View style={styles.card}>
-        <Text style={styles.pregunta}>2) Vestido</Text>
+        <Text style={styles.pregunta}>
+          2) Vestido
+        </Text>
         <Text style={styles.descripcion}>
           Sí: Puede tomar las prendas y vestirse completamente sin asistencia.{"\n"}
           Sí: Puede vestirse excepto abrocharse los zapatos.{"\n"}
@@ -117,18 +205,43 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.dress === "si" && styles.selected]}
-            onPress={() => seleccionar("dress", "si")}
+            style={[
+              styles.opcion,
+              answers.dress === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("dress", "si")
+            }
           >
-            <Text style={answers.dress === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.dress === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.dress === "no" && styles.selected]}
-            onPress={() => seleccionar("dress", "no")}
+            style={[
+              styles.opcion,
+              answers.dress === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("dress", "no")
+            }
           >
-            <Text style={answers.dress === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.dress === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
@@ -137,7 +250,9 @@ export default function KatzScreen({
 
       {/* 3 SANITARIO */}
       <View style={styles.card}>
-        <Text style={styles.pregunta}>3) Uso del Sanitario</Text>
+        <Text style={styles.pregunta}>
+          3) Uso del Sanitario
+        </Text>
         <Text style={styles.descripcion}>
           Sí: Sin asistencia (puede usar bastón o silla de ruedas).{"\n"}
           Sí: Recibe asistencia pero maneja su pañal o cómodo.{"\n"}
@@ -145,18 +260,43 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.toilet === "si" && styles.selected]}
-            onPress={() => seleccionar("toilet", "si")}
+            style={[
+              styles.opcion,
+              answers.toilet === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("toilet", "si")
+            }
           >
-            <Text style={answers.toilet === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.toilet === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.toilet === "no" && styles.selected]}
-            onPress={() => seleccionar("toilet", "no")}
+            style={[
+              styles.opcion,
+              answers.toilet === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("toilet", "no")
+            }
           >
-            <Text style={answers.toilet === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.toilet === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
@@ -165,7 +305,9 @@ export default function KatzScreen({
 
       {/* 4 TRANSFERENCIAS */}
       <View style={styles.card}>
-        <Text style={styles.pregunta}>4) Transferencias</Text>
+        <Text style={styles.pregunta}>
+          4) Transferencias
+        </Text>
         <Text style={styles.descripcion}>
           Sí: Se mueve dentro y fuera de la cama y silla sin asistencia.{"\n"}
           Sí: Se mueve con asistencia.{"\n"}
@@ -173,18 +315,43 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.transfer === "si" && styles.selected]}
-            onPress={() => seleccionar("transfer", "si")}
+            style={[
+              styles.opcion,
+              answers.transfer === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("transfer", "si")
+            }
           >
-            <Text style={answers.transfer === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.transfer === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.transfer === "no" && styles.selected]}
-            onPress={() => seleccionar("transfer", "no")}
+            style={[
+              styles.opcion,
+              answers.transfer === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("transfer", "no")
+            }
           >
-            <Text style={answers.transfer === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.transfer === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
@@ -193,7 +360,9 @@ export default function KatzScreen({
 
       {/* 5 CONTINENCIA */}
       <View style={styles.card}>
-        <Text style={styles.pregunta}>5) Continencia</Text>
+        <Text style={styles.pregunta}>
+          5) Continencia
+        </Text>
         <Text style={styles.descripcion}>
           Sí: Control total de esfínteres.{"\n"}
           Sí: Accidentes ocasionales.{"\n"}
@@ -201,18 +370,49 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.continence === "si" && styles.selected]}
-            onPress={() => seleccionar("continence", "si")}
+            style={[
+              styles.opcion,
+              answers.continence === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar(
+                "continence",
+                "si"
+              )
+            }
           >
-            <Text style={answers.continence === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.continence === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.continence === "no" && styles.selected]}
-            onPress={() => seleccionar("continence", "no")}
+            style={[
+              styles.opcion,
+              answers.continence === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar(
+                "continence",
+                "no"
+              )
+            }
           >
-            <Text style={answers.continence === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.continence === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
@@ -221,7 +421,9 @@ export default function KatzScreen({
 
       {/* 6 ALIMENTACIÓN */}
       <View style={styles.card}>
-        <Text style={styles.pregunta}>6) Alimentación</Text>
+        <Text style={styles.pregunta}>
+          6) Alimentación
+        </Text>
         <Text style={styles.descripcion}>
           Sí: Se alimenta solo sin asistencia.{"\n"}
           Sí: Necesita ayuda para cortar carne o untar mantequilla.{"\n"}
@@ -229,26 +431,56 @@ export default function KatzScreen({
         </Text>
         <View style={styles.row}>
           <Pressable
-            style={[styles.opcion, answers.feeding === "si" && styles.selected]}
-            onPress={() => seleccionar("feeding", "si")}
+            style={[
+              styles.opcion,
+              answers.feeding === "si" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("feeding", "si")
+            }
           >
-            <Text style={answers.feeding === "si" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.feeding === "si"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               Sí
             </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.opcion, answers.feeding === "no" && styles.selected]}
-            onPress={() => seleccionar("feeding", "no")}
+            style={[
+              styles.opcion,
+              answers.feeding === "no" &&
+                styles.selected,
+            ]}
+            onPress={() =>
+              seleccionar("feeding", "no")
+            }
           >
-            <Text style={answers.feeding === "no" ? styles.selectedText : styles.text}>
+            <Text
+              style={
+                answers.feeding === "no"
+                  ? styles.selectedText
+                  : styles.text
+              }
+            >
               No
             </Text>
           </Pressable>
         </View>
       </View>
 
-      <Pressable style={styles.botonGuardar} onPress={guardarPrueba}>
-        <Text style={styles.botonTexto}>Guardar Prueba</Text>
+      <Pressable
+        style={styles.botonGuardar}
+        onPress={guardarPrueba}
+      >
+        <Text style={styles.botonTexto}>
+          Guardar Prueba
+        </Text>
       </Pressable>
     </ScrollView>
   );

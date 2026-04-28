@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   FlatList,
   Alert,
 } from "react-native";
+import { Accelerometer } from "expo-sensors";
 
 const FluenciaVerbalScreen = ({
   setScreen,
@@ -18,6 +19,47 @@ const FluenciaVerbalScreen = ({
   const [palabras, setPalabras] = useState([]);
   const [tiempoRestante, setTiempoRestante] = useState(60);
   const [activo, setActivo] = useState(false);
+
+  // 📱 referencia para evitar múltiples reinicios seguidos
+  const shakeTimeout = useRef(null);
+
+  // 🧹 limpiar prueba al agitar
+  const limpiarPrueba = () => {
+    setPalabra("");
+    setPalabras([]);
+    setTiempoRestante(60);
+    setActivo(false);
+
+    Alert.alert(
+      "Prueba reiniciada",
+      "Agitaste el teléfono 📱"
+    );
+  };
+
+  // 📱 sensor de sacudida
+  useEffect(() => {
+    Accelerometer.setUpdateInterval(300);
+
+    const subscription = Accelerometer.addListener(
+      ({ x, y, z }) => {
+        const fuerza = Math.sqrt(
+          x * x + y * y + z * z
+        );
+
+        if (fuerza > 1.8) {
+          if (!shakeTimeout.current) {
+            limpiarPrueba();
+
+            shakeTimeout.current = setTimeout(() => {
+              shakeTimeout.current = null;
+            }, 2000);
+          }
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, []);
 
   // ⏱ Temporizador
   useEffect(() => {
@@ -91,6 +133,10 @@ const FluenciaVerbalScreen = ({
         Tiempo restante: {tiempoRestante}s
       </Text>
 
+      <Text style={styles.avisoSensor}>
+        📱 Agita el dispositivo para limpiar
+      </Text>
+
       {!activo ? (
         <TouchableOpacity
           style={styles.botonIniciar}
@@ -121,7 +167,9 @@ const FluenciaVerbalScreen = ({
 
           <FlatList
             data={palabras}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item, index) =>
+              index.toString()
+            }
             renderItem={({ item }) => (
               <Text style={styles.item}>
                 • {item}
@@ -161,7 +209,13 @@ const styles = StyleSheet.create({
   timer: {
     fontSize: 18,
     textAlign: "center",
+    marginBottom: 10,
+  },
+  avisoSensor: {
+    textAlign: "center",
     marginBottom: 20,
+    color: "#666",
+    fontStyle: "italic",
   },
   input: {
     backgroundColor: "white",
