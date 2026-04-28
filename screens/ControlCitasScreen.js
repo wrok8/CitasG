@@ -205,16 +205,6 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
 
   return (
     <View style={s.root}>
-
-
-      <View style={s.resumenBar}>
-        <ResumenChip icon="" valor={citasAgendadas.length}   label="En agenda"  color="#1565C0" />
-        <ResumenChip icon="" valor={citas.filter(c => c.status === "en curso").length}  label="En curso"   color="#E65100" />
-        <ResumenChip icon="" valor={citas.filter(c => c.status === "concluida").length} label="Concluidas" color="#2E7D32" />
-        <ResumenChip icon="" valor={citas.filter(c => c.status === "cancelada").length} label="Canceladas" color="#B71C1C" />
-      </View>
-
-
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabsBar}>
         {TABS.map((t) => (
           <TouchableOpacity
@@ -231,13 +221,7 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
 
         {tab === "Agenda" && (
           <>
-            {/* Buscador */}
-            <TextInput
-              style={s.buscador}
-              placeholder="  Buscar por paciente, médico o centro..."
-              value={busqueda}
-              onChangeText={setBusqueda}
-            />
+            
 
             {/* Filtros de status */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filtrosRow}>
