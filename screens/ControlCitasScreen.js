@@ -268,7 +268,7 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
         {tab === "Pacientes" && (
           <>
             <Text style={s.seccionTitulo}>
-               Pacientes con citas agendadas ({citasAgendadas.length})
+              Pacientes con citas agendadas ({citasAgendadas.length})
             </Text>
 
             {(() => {
@@ -281,7 +281,7 @@ export default function ControlCitasScreen({ setScreen, pacienteActual }) {
                 <View key={nombre} style={s.pacienteCard}>
                   <Text style={s.pacienteNombre}> {nombre}</Text>
                   <Text style={s.pacienteSub}>
-                     {citasPac[0]?.telefono}   •   Total citas: {citasPac.length}
+                    {citasPac[0]?.telefono}   •   Total citas: {citasPac.length}
                   </Text>
                   <View style={s.pacienteStatusRow}>
                     {Object.entries(
